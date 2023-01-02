@@ -1,12 +1,6 @@
 // --- React Methods
 import React from "react";
 
-// --- Wagmi
-import {
-  useAccount,
-  useConnect,
-} from "wagmi"
-
 // --- Components
 import Header from "../components/Header";
 import Footer from "../components/Footer";

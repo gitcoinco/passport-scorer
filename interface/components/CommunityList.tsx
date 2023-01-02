@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react";
 
 // --- Components
-import { RepeatIcon } from "@chakra-ui/icons";
+import { Icon } from "@chakra-ui/icons";
+import { IoIosPeople } from "react-icons/io"
 import CommunityCard from "./CommunityCard";
 import ModalTemplate from "./ModalTemplate";
 import NoValues from "./NoValues";
@@ -101,75 +102,99 @@ const CommunityList = (): JSX.Element => {
   });
 
   return (
-    <>
+    <div>
       {communities.length === 0 ? (
-        <NoValues
-          title="My Communities"
-          description="Manage how your dapps interact with the Gitcoin Passport by creating a
-        key that will connect to any community."
-          addRequest={() => {
-            setCommunityName("");
-            setCommunityDescription("");
-            setCreateCommunityModalOpen(true);
-          }}
-          icon={
-            <RepeatIcon
-              viewBox="0 0 25 25"
-              boxSize="1.9em"
-              color="#757087"
-            />
-          }
-        />
-      ) : (
-        <div className="mx-5 mt-4">
-          {communityList}
-          <button
-            data-testid="open-community-modal"
-            onClick={() => {
+        <div>
+          <p className="font-librefranklin text-purple-softpurple">API developers use Communities to manage scoring, settings, and log traffic for their Passport-enabled applications.</p>
+          <NoValues
+            title="Create a Community"
+            description="DAOs, grants programs, applications, and projects are all considered to be communities."
+            addRequest={() => {
               setCommunityName("");
               setCommunityDescription("");
-              setUpdatedCommunityName("");
-              setUpdatedCommunityDescription("");
-              setCreateCommunityModalOpen(true)
+              setCreateCommunityModalOpen(true);
             }}
-            className="text-md mt-5 rounded-sm border border-gray-lightgray py-1 px-6 font-librefranklin text-blue-darkblue "
-            disabled={communities.length >= 5}
-          >
-            <span className="text-lg">+</span> Create a Community
-          </button>
-          {error && <div>{error}</div>}
+            icon={
+              <Icon
+                as={IoIosPeople}
+                viewBox="0 0 25 25"
+                boxSize="1.9em"
+                color="#6F3FF5"
+              />
+            }
+            buttonText=" Community"
+          />
         </div>
-      )}
+        ) : (
+          <>
+            <div className="grid grid-cols-4 gap-6">
+              <div className="col-span-3">
+                <p className="font-librefranklin text-purple-softpurple pl-1 mb-2">API developers use Communities to manage scoring, settings, and log traffic for their Passport-enabled applications.</p>
+                {communityList}
+                {error && <div>{error}</div>}
+              </div>
+              <div className="grid grid-rows col-span-1">
+                <div className="flex flex-col">
+                  <p className="font-librefranklin text-blue-darkblue mb-2 text-lg">Community Scoring</p>
+                  <p className="font-librefranklin text-purple-softpurple mb-4">DAOs, grants programs, apps, and projects can all be considered communities.</p>
+                  <button
+                    data-testid="open-community-modal"
+                    onClick={() => {
+                      setCommunityName("");
+                      setCommunityDescription("");
+                      setUpdatedCommunityName("");
+                      setUpdatedCommunityDescription("");
+                      setCreateCommunityModalOpen(true)
+                    }}
+                    className="rounded-sm bg-purple-gitcoinviolet py-2 px-4 text-white"
+                    disabled={communities.length >= 5}
+                  >
+                    <span className="text-lg">+</span> Create a Community
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      {/* The second grid item for adding new community */}
       <ModalTemplate
         title="Create a Community"
         isOpen={createCommunityModalOpen}
         onClose={() => setCreateCommunityModalOpen(false)}
+        body="DAOs, grants programs, apps, and projects can all be considered communities."
+        icon={<Icon
+          as={IoIosPeople}
+          viewBox="-1 -1 17 17"
+          boxSize="2.2em"
+          color="#6F3FF5"
+        />}
       >
         <div className="flex flex-col">
-          <label className="text-gray-softgray font-librefranklin text-xs">
+          <label className="text-gray-softgray font-librefranklin text-xs mb-2">
             Community Name
           </label>
           <Input
             data-testid="community-name-input"
-            className="mb-4"
+            className="mb-4 font-librefranklin"
             value={communityName}
             onChange={(name) => setCommunityName(name.target.value)}
             placeholder="Community name"
           />
-          <label className="text-gray-softgray font-librefranklin text-xs">
+          <label className="text-gray-softgray font-librefranklin text-xs mb-2">
             Community Description
           </label>
           <Input
             data-testid="community-description-input"
             value={communityDescription}
+            className="font-librefranklin"
             onChange={(description) => setCommunityDescription(description.target.value)}
             placeholder="Community Description"
           />
-          <div className="flex w-full justify-end">
+          <div className="flex">
             <button
               disabled={!communityName && !communityDescription}
               data-testid="create-button"
-              className="mt-6 mb-2 rounded bg-purple-softpurple py-2 px-4 text-white disabled:opacity-25"
+              className="mt-6 mb-2 rounded-sm bg-purple-gitcoinviolet py-2 px-4 text-white disabled:opacity-25 w-full"
               onClick={() => handleCreateCommunity()}
             >
               Create
@@ -182,24 +207,32 @@ const CommunityList = (): JSX.Element => {
         title="Update Community"
         isOpen={updateCommunityModalOpen}
         onClose={() => setUpdateCommunityModalOpen(false)}
+        body="DAOs, grants programs, apps, and projects can all be considered communities."
+        icon={<Icon
+          as={IoIosPeople}
+          viewBox="-1 -1 17 17"
+          boxSize="2.2em"
+          color="#6F3FF5"
+        />}
       >
         <div className="flex flex-col">
-          <label className="text-gray-softgray font-librefranklin text-xs">
+          <label className="text-gray-softgray font-librefranklin text-xs mb-2">
             Community Name
           </label>
           <Input
             data-testid="update-community-name-input"
-            className="mb-4"
+            className="mb-4 font-librefranklin"
             value={updatedCommunityName}
             onChange={(name) => setUpdatedCommunityName(name.target.value)}
             placeholder="Community name"
           />
-          <label className="text-gray-softgray font-librefranklin text-xs">
+          <label className="text-gray-softgray font-librefranklin text-xs mb-2">
             Community Description
           </label>
           <Input
             data-testid="update-community-description-input"
             value={updatedCommunityDescription}
+            className="font-librefranklin"
             onChange={(description) => setUpdatedCommunityDescription(description.target.value)}
             placeholder="Community Description"
           />
@@ -207,7 +240,7 @@ const CommunityList = (): JSX.Element => {
             <button
               disabled={!updatedCommunityName && !updatedCommunityDescription}
               data-testid="save-button"
-              className="mt-6 mb-2 rounded bg-purple-softpurple py-2 px-4 text-white disabled:opacity-25"
+              className="mt-6 mb-2 rounded-sm bg-purple-gitcoinviolet py-2 px-4 text-white disabled:opacity-25"
               onClick={() => handleUpdateCommunity(updatedCommunityId)}
             >
               Save
@@ -216,7 +249,7 @@ const CommunityList = (): JSX.Element => {
           </div>
         </div>
       </ModalTemplate>
-    </>
+    </div>
   );
 };
 

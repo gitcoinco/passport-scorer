@@ -149,9 +149,9 @@ export default function App({ Component, pageProps }: AppProps) {
             chains={chains}
             modalSize="compact"
             theme={lightTheme({
-              accentColor: "#757087",
+              accentColor: "#6F3FF5",
               accentColorForeground: "white",
-              borderRadius: "small",
+              borderRadius: "none",
               overlayBlur: "small",
             })}
           >

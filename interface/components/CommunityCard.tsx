@@ -5,7 +5,7 @@ import React from "react";
 import { Community } from "../utils/account-requests";
 
 // Components
-import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
+import MenuTemplate from "./MenuTemplate";
 
 // --- Next
 import { useRouter } from "next/router";
@@ -31,13 +31,36 @@ const CommunityCard = ({
 }: CommunityCardProps): JSX.Element => {
   const router = useRouter();
 
+  const menuItems = [
+    {
+      label: "Edit",
+      onClick: () => {
+        setUpdatedCommunityName(community.name);
+        setUpdatedCommunityDescription(community.description);
+        setUpdatedCommunityId(community.id);
+        setUpdateCommunityModalOpen(true);
+      }
+    },
+    {
+      label: "Delete",
+      onClick: async () => await handleDeleteCommunity(communityId)
+    },
+  ];
+
   return (
     <div className="grid w-full auto-cols-auto grid-cols-2 items-center justify-between border-x border-t border-gray-lightgray bg-white p-4 first-of-type:rounded-t-md last-of-type:rounded-b-md last-of-type:border-b hover:bg-gray-50">
       {/* first column */}
       <div className="grid-rows grid">
         <p className="mb-2 cursor-pointer font-librefranklin font-semibold text-blue-darkblue">
           <a
-            onClick={() => router.push(`/dashboard/community/${community.id}`)}
+            onClick={() => router.push({
+              pathname: `/dashboard/community/${community.id}`,
+              query: {
+                id: community.id,
+                communityName: community.name,
+                communityDescription: community.description,
+              }
+            })}
           >
             {community.name}
           </a>
@@ -47,25 +70,10 @@ const CommunityCard = ({
         </p>
       </div>
       {/* second column */}
-      <div className="grid grid-cols-2 justify-self-end">
-        <button
-          data-testid="edit-community-button"
-          className="mr-2 justify-self-end rounded-md border border-gray-lightgray bg-white px-3 pt-1 pb-2 shadow-sm shadow-gray-100"
-          onClick={async () => {
-            setUpdatedCommunityId(community.id);
-            setUpdatedCommunityName(community.name);
-            setUpdatedCommunityDescription(community.description);
-            setUpdateCommunityModalOpen(true);
-          }}
-        >
-          <EditIcon color="#757087" />
-        </button>
-        <button
-          className="justify-self-end rounded-md border border-gray-lightgray bg-white px-3 pt-1 pb-2 shadow-sm shadow-gray-100"
-          onClick={async () => await handleDeleteCommunity(communityId)}
-        >
-          <DeleteIcon color="#757087" />
-        </button>
+      <div className="grid grid-cols-1 justify-self-end">
+        <MenuTemplate>
+          {menuItems}
+        </MenuTemplate>
       </div>
     </div>
   );
