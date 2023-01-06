@@ -111,6 +111,7 @@ def _(passport_holder_addresses, submit_passport_response):
         {
             "address": passport_holder_addresses[1]["address"].lower(),
             "score": "1234.000000000",  # we expect a score only for the ENS stamp
+            "error": None,
         }
     ]
 

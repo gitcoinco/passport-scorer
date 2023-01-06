@@ -83,10 +83,12 @@ class TestPassportGetScore:
             f"/registry/score/{community_id}/{address}",
             HTTP_AUTHORIZATION="Token " + scorer_api_key,
         )
+
         assert response.status_code == 200
         assert response.json() == {
             "address": address.lower(),
             "score": scorer_score.score,
+            "error": None,
         }
 
     # TODO: Create test authorization separately
