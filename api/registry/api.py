@@ -7,7 +7,7 @@ from account.deduplication.lifo import lifo
 from account.models import AccountAPIKey, Community, Nonce
 from asgiref.sync import async_to_sync
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import Field, Query, Router
 from ninja.security import APIKeyHeader
 from ninja_extra import NinjaExtraAPI, status
 from ninja_extra.exceptions import APIException
@@ -59,8 +59,8 @@ class Unauthorized(APIException):
 class SubmitPassportPayload(Schema):
     address: str
     community: str  # TODO: gerald: community_id ???, and make it int
-    signature: str = ''
-    nonce: str = ''
+    signature: str = ""
+    nonce: str = ""
 
 
 class ScoreResponse(Schema):
@@ -101,9 +101,11 @@ def signing_message(request) -> SigningMessageResponse:
         "nonce": nonce,
     }
 
+
 # TODO define logic once Community model has been updated
 def community_requires_signature(community):
     return False
+
 
 @router.post("/submit-passport", auth=ApiKey(), response=List[ScoreResponse])
 def submit_passport(request, payload: SubmitPassportPayload) -> List[ScoreResponse]:
@@ -240,6 +242,26 @@ def get_score(request, address: str, community_id: int) -> ScoreResponse:
             "Error when getting passport score. address=%s, community_id=%s",
             address,
             community_id,
+            exc_info=True,
+        )
+        raise InvalidScoreRequestException()
+
+
+class ScoreFilters(Schema):
+    community_id: int
+    limit: int = 50
+    offset: int = 0
+    addresses: List[str] = Field(None, alias="addresses")
+
+
+@router.get("/scores", auth=ApiKey(), response=List[ScoreResponse])
+def get_scores(request, filters: ScoreFilters = Query({})) -> List[ScoreResponse]:
+    try:
+        return [{"address": "score.passport.address", "score": "score.score"}]
+    except Exception as e:
+        log.error(
+            "Error when getting passport scores. community_id=%s",
+            filters.dict()["community_id"],
             exc_info=True,
         )
         raise InvalidScoreRequestException()

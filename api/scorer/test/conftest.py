@@ -102,7 +102,6 @@ def scorer_passport(passport_holder_addresses, scorer_community):
     passport = Passport.objects.create(
         address=passport_holder_addresses[0]["address"],
         passport={"name": "John Doe"},
-        version=1,
         community=scorer_community,
     )
     return passport
