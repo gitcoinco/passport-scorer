@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 # --- Deduplication Modules
 from account.deduplication.lifo import lifo
@@ -43,7 +43,7 @@ class InvalidPassportCreationException(APIException):
 
 class InvalidScoreRequestException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "Unable to get score for provided community."
+    default_detail = "Unable to get score for provided address(s)."
 
 
 class NoPassportException(APIException):
@@ -63,10 +63,28 @@ class SubmitPassportPayload(Schema):
     nonce: str = ""
 
 
+class ScoreEvidenceResponse(Schema):
+    type: str
+    success: bool
+
+
+class ThresholdScoreEvidenceResponse(ScoreEvidenceResponse):
+    rawScore: str
+    threshold: str
+
+
+class DetailedScoreResponse(Schema):
+    # passport_id: int
+    address: str
+    score: str
+    evidence: Optional[List[ThresholdScoreEvidenceResponse]]
+
+
 class ScoreResponse(Schema):
     # passport_id: int
     address: str
-    score: str  # The score should be represented as string as it will be a decimal number
+    score: str | None  # The score should be represented as string as it will be a decimal number
+    error: str = None
 
 
 class SigningMessageResponse(Schema):
@@ -222,16 +240,30 @@ def submit_passport(request, payload: SubmitPassportPayload) -> List[ScoreRespon
         InvalidPassportCreationException()
 
 
+def get_score_for_address(address: str):
+    try:
+        # TODO: validate that community belongs to the account holding the ApiKey
+        lower_address = address.lower()
+        passport = Passport.objects.get(address=lower_address)
+        score = Score.objects.get(passport=passport)
+        return score
+    except Exception as e:
+        log.error(
+            "Error when getting passport score. address=%s", address, exc_info=True
+        )
+        return e
+
+
 @router.get(
     "/score/{int:community_id}/{str:address}", auth=ApiKey(), response=ScoreResponse
 )
 def get_score(request, address: str, community_id: int) -> ScoreResponse:
     try:
-        # TODO: validate that community belongs to the account holding the ApiKey
-        lower_address = address.lower()
-        community = Community.objects.get(id=community_id)
-        passport = Passport.objects.get(address=lower_address, community=community)
-        score = Score.objects.get(passport=passport)
+        score = get_score_for_address(address)
+
+        if score["error"]:
+            raise InvalidScoreRequestException()
+
         return {
             "address": score.passport.address,
             "score": score.score,
@@ -257,11 +289,29 @@ class ScoreFilters(Schema):
 @router.get("/scores", auth=ApiKey(), response=List[ScoreResponse])
 def get_scores(request, filters: ScoreFilters = Query({})) -> List[ScoreResponse]:
     try:
-        return [{"address": "score.passport.address", "score": "score.score"}]
+        results = []
+        request_filters = filters.dict()
+        for address in request_filters["addresses"]:
+            try:
+                score = get_score_for_address(address)
+                results.append(
+                    {"address": score.passport.address, "score": score.score}
+                )
+            except Exception as e:
+                results.append(
+                    {
+                        "address": address,
+                        "score": "",
+                        "error": "Unable to find score for given address",
+                    }
+                )
+                continue
+
+        return results
     except Exception as e:
         log.error(
-            "Error when getting passport scores. community_id=%s",
-            filters.dict()["community_id"],
+            "Error getting passport scores. community_id=%s",
+            request_filters["community_id"],
             exc_info=True,
         )
         raise InvalidScoreRequestException()

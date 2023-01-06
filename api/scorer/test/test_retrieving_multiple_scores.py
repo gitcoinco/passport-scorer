@@ -7,6 +7,8 @@ from registry.models import Passport, Score
 
 pytestmark = pytest.mark.django_db
 
+client = Client()
+
 
 @scenario(
     "features/retrieve_multiple_scores.feature",
@@ -40,9 +42,9 @@ def _(passport_holder_addresses, scorer_community):
 )
 def _(passport_holder_addresses, scorer_community, scorer_api_key):
     """the developer makes a request to the API to retrieve the logged Passport scores for the Ethereum addresses within the specified community."""
-    client = Client()
+
     response = client.get(
-        f"/registry/scores?community_id={scorer_community.id}&addresses={passport_holder_addresses[0]['address']}&addresses={passport_holder_addresses[1]['address']}",
+        f"/registry/scores?community_id={scorer_community.id}&addresses={passport_holder_addresses[0]['address']}&addresses={passport_holder_addresses[1]['address']}&addresses='bad_address",
         HTTP_AUTHORIZATION="Token " + scorer_api_key,
     )
     return response
@@ -51,17 +53,27 @@ def _(passport_holder_addresses, scorer_community, scorer_api_key):
 @then(
     "the API should handle errors and return appropriate messages if any of the Ethereum addresses are invalid or if there are issues with the request."
 )
-def _(get_scores_response):
+def _(get_scores_response, passport_holder_addresses, scorer_api_key):
     """the API should handle errors and return appropriate messages if any of the Ethereum addresses are invalid or if there are issues with the request.."""
-    import pdb
+    results = get_scores_response.json()
+    assert get_scores_response.status_code == 200
+    assert results[2]["error"] == "Unable to find score for given address"
 
-    pdb.set_trace()
+    response = client.get(
+        f"/registry/scores?community_id=bad_community&addresses={passport_holder_addresses[0]['address']}&addresses={passport_holder_addresses[1]['address']}&addresses='bad_address",
+        HTTP_AUTHORIZATION="Token " + scorer_api_key,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["msg"] == "value is not a valid integer"
 
 
 @then(
     "the API should return the logged Passport scores for each Ethereum address in the list in a format that is easy to work with (e.g. a JSON object)"
 )
-def _():
+def _(get_scores_response):
     """the API should return the logged Passport scores for each Ethereum address in the list in a format that is easy to work with (e.g. a JSON object)."""
-    # raise NotImplementedError
-    pass
+    results = get_scores_response.json()
+    assert results[0]["score"] == "1.000000000"
+    assert results[1]["score"] == "1.000000000"
+    assert results[2]["score"] == ""
