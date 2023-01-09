@@ -83,6 +83,7 @@ const postgresql = new aws.rds.Instance(`scorer-db`, {
   skipFinalSnapshot: true,
   dbSubnetGroupName: dbSubnetGroup.id,
   vpcSecurityGroupIds: [db_secgrp.id],
+  protect: true,
 });
 
 export const rdsEndpoint = postgresql.endpoint;
