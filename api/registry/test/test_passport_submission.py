@@ -490,6 +490,7 @@ class ValidatePassportTestCase(TransactionTestCase):
                 {
                     "address": "0xb81c935d01e734b3d8bb233f5c4e1d72dbc30f6c",
                     "score": "2.000000000",
+                    "error": None,
                 }
             ],
         )
@@ -525,6 +526,7 @@ class ValidatePassportTestCase(TransactionTestCase):
                 {
                     "address": "0xb81c935d01e734b3d8bb233f5c4e1d72dbc30f6c",
                     "score": "2.000000000",
+                    "error": None,
                 }
             ],
         )

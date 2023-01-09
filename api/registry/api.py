@@ -1,13 +1,13 @@
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 # --- Deduplication Modules
 from account.deduplication.lifo import lifo
 from account.models import AccountAPIKey, Community, Nonce
 from asgiref.sync import async_to_sync
 from django.shortcuts import get_object_or_404
-from ninja import Router
+from ninja import Field, Query, Router
 from ninja.security import APIKeyHeader
 from ninja_extra import NinjaExtraAPI, status
 from ninja_extra.exceptions import APIException
@@ -43,7 +43,7 @@ class InvalidPassportCreationException(APIException):
 
 class InvalidScoreRequestException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "Unable to get score for provided community."
+    default_detail = "Unable to get score for provided address(s)."
 
 
 class NoPassportException(APIException):
@@ -59,14 +59,32 @@ class Unauthorized(APIException):
 class SubmitPassportPayload(Schema):
     address: str
     community: str  # TODO: gerald: community_id ???, and make it int
-    signature: str = ''
-    nonce: str = ''
+    signature: str = ""
+    nonce: str = ""
+
+
+class ScoreEvidenceResponse(Schema):
+    type: str
+    success: bool
+
+
+class ThresholdScoreEvidenceResponse(ScoreEvidenceResponse):
+    rawScore: str
+    threshold: str
+
+
+class DetailedScoreResponse(Schema):
+    # passport_id: int
+    address: str
+    score: str
+    evidence: Optional[List[ThresholdScoreEvidenceResponse]]
 
 
 class ScoreResponse(Schema):
     # passport_id: int
     address: str
-    score: str  # The score should be represented as string as it will be a decimal number
+    score: str | None  # The score should be represented as string as it will be a decimal number
+    error: str = None
 
 
 class SigningMessageResponse(Schema):
@@ -101,9 +119,11 @@ def signing_message(request) -> SigningMessageResponse:
         "nonce": nonce,
     }
 
+
 # TODO define logic once Community model has been updated
 def community_requires_signature(community):
     return False
+
 
 @router.post("/submit-passport", auth=ApiKey(), response=List[ScoreResponse])
 def submit_passport(request, payload: SubmitPassportPayload) -> List[ScoreResponse]:
@@ -225,11 +245,10 @@ def submit_passport(request, payload: SubmitPassportPayload) -> List[ScoreRespon
 )
 def get_score(request, address: str, community_id: int) -> ScoreResponse:
     try:
-        # TODO: validate that community belongs to the account holding the ApiKey
-        lower_address = address.lower()
-        community = Community.objects.get(id=community_id)
-        passport = Passport.objects.get(address=lower_address, community=community)
-        score = Score.objects.get(passport=passport)
+        score = Score.objects.get(
+            passport__address=address, passport__community__id=community_id
+        )
+
         return {
             "address": score.passport.address,
             "score": score.score,
@@ -240,6 +259,53 @@ def get_score(request, address: str, community_id: int) -> ScoreResponse:
             "Error when getting passport score. address=%s, community_id=%s",
             address,
             community_id,
+            exc_info=True,
+        )
+        raise InvalidScoreRequestException()
+
+
+class ScoreFilters(Schema):
+    community_id: int
+    limit: int = 50
+    offset: int = 0
+    addresses: List[str] = Field(None, alias="addresses")
+
+
+@router.get("/scores", auth=ApiKey(), response=List[ScoreResponse])
+def get_scores(request, filters: ScoreFilters = Query({})) -> List[ScoreResponse]:
+    try:
+        results = []
+        request_filters = filters.dict()
+
+        addresses = [x.lower() for x in request_filters["addresses"]]
+        scores = Score.objects.filter(
+            passport__address__in=addresses,
+            passport__community__id=filters.community_id,
+        )
+
+        # if no results are found throw error
+        if len(scores) == 0:
+            raise InvalidScoreRequestException()
+
+        for score in scores:
+            results.append({"address": score.passport.address, "score": score.score})
+            addresses.remove(score.passport.address)
+
+        # return error for addresses that were not found
+        for address in addresses:
+            results.append(
+                {
+                    "address": address,
+                    "score": "",
+                    "error": "Unable to find score for given address",
+                }
+            )
+
+        return results
+    except Exception as e:
+        log.error(
+            "Error getting passport scores. community_id=%s",
+            request_filters["community_id"],
             exc_info=True,
         )
         raise InvalidScoreRequestException()
