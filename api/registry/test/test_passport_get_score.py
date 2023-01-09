@@ -109,3 +109,20 @@ class TestPassportGetScore:
             HTTP_AUTHORIZATION="Token " + scorer_api_key,
         )
         assert response.status_code == 400
+
+    def test_passport_get_scores_pagination(
+        self, scorer_api_key, scorer_community, scorer_account, scorer_score
+    ):
+        address = scorer_account.address
+        community_id = scorer_community.id
+        client = Client()
+        response = client.get(
+            f"/registry/score/{community_id}/{address}?page=1",
+            HTTP_AUTHORIZATION="Token " + scorer_api_key,
+        )
+        assert response.status_code == 200
+        assert response.json() == {
+            "address": address.lower(),
+            "score": scorer_score.score,
+            "error": None,
+        }
