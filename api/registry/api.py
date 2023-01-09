@@ -245,7 +245,9 @@ def submit_passport(request, payload: SubmitPassportPayload) -> List[ScoreRespon
 )
 def get_score(request, address: str, community_id: int) -> ScoreResponse:
     try:
-        score = Score.objects.get(passport__address=address)
+        score = Score.objects.get(
+            passport__address=address, passport__community__id=community_id
+        )
 
         return {
             "address": score.passport.address,
@@ -276,7 +278,14 @@ def get_scores(request, filters: ScoreFilters = Query({})) -> List[ScoreResponse
         request_filters = filters.dict()
 
         addresses = [x.lower() for x in request_filters["addresses"]]
-        scores = Score.objects.filter(passport__address__in=addresses)
+        scores = Score.objects.filter(
+            passport__address__in=addresses,
+            passport__community__id=filters.community_id,
+        )
+
+        # if no results are found throw error
+        if len(scores) == 0:
+            raise InvalidScoreRequestException()
 
         for score in scores:
             results.append({"address": score.passport.address, "score": score.score})

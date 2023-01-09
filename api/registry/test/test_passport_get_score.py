@@ -110,19 +110,38 @@ class TestPassportGetScore:
         )
         assert response.status_code == 400
 
-    def test_passport_get_scores_pagination(
-        self, scorer_api_key, scorer_community, scorer_account, scorer_score
+    def test_get_score_with_valid_community_with_no_scores(
+        self, scorer_api_key, scorer_account
     ):
+        additional_community = Community.objects.create(
+            name="My Community",
+            description="My Community description",
+            account=scorer_account,
+        )
+
         address = scorer_account.address
-        community_id = scorer_community.id
         client = Client()
         response = client.get(
-            f"/registry/score/{community_id}/{address}?page=1",
+            f"/registry/score/{additional_community.id}/{address}",
             HTTP_AUTHORIZATION="Token " + scorer_api_key,
         )
-        assert response.status_code == 200
-        assert response.json() == {
-            "address": address.lower(),
-            "score": scorer_score.score,
-            "error": None,
-        }
+
+        assert response.status_code == 400
+
+    def test_get_scores_with_valid_community_with_no_scores(
+        self, scorer_api_key, scorer_account
+    ):
+        additional_community = Community.objects.create(
+            name="My Community",
+            description="My Community description",
+            account=scorer_account,
+        )
+
+        address = scorer_account.address
+        client = Client()
+        response = client.get(
+            f"/registry/scores?community_id={additional_community.id}&addresses={address}",
+            HTTP_AUTHORIZATION="Token " + scorer_api_key,
+        )
+
+        assert response.status_code == 400
