@@ -39,7 +39,7 @@ analytics_router = Router()
 
 class SubmitPassportPayload(Schema):
     address: str
-    community: str
+    community_id: int
     signature: str = ""
     nonce: str = ""
 
@@ -177,7 +177,7 @@ def submit_passport(request, payload: SubmitPassportPayload) -> DetailedScoreRes
 
     # Get community object
     user_community = get_object_or_404(
-        Community, id=payload.community, account=request.auth
+        Community, id=payload.community_id, account=request.auth
     )
 
     # Verify the signer

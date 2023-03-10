@@ -129,7 +129,7 @@ class TestScorePassportTestCase(TransactionTestCase):
                 mock_request,
                 SubmitPassportPayload(
                     address=address,
-                    community=self.community.pk,
+                    community_id=self.community.pk,
                 ),
             )
 

@@ -76,7 +76,7 @@ def _(
     )
 
     payload = {
-        "community": scorer_community_with_gitcoin_default.id,
+        "community_id": scorer_community_with_gitcoin_default.id,
         "address": second_account["address"],
         "signature": signed_message.signature.hex(),
         "nonce": nonce,

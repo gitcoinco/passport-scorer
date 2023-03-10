@@ -63,7 +63,7 @@ def submit_passport(scorer_api_key, scorer_community_with_gitcoin_default, mocke
     )
 
     payload = {
-        "community": scorer_community_with_gitcoin_default.id,
+        "community_id": scorer_community_with_gitcoin_default.id,
         "address": scorer_community_with_gitcoin_default.account.address,
         "signature": signed_message.signature.hex(),
         "nonce": nonce,

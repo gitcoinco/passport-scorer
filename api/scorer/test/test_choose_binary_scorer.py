@@ -69,7 +69,7 @@ def score_response(scorer_community, scorer_api_key):
                     "/registry/submit-passport",
                     json.dumps(
                         {
-                            "community": scorer_community.id,
+                            "community_id": scorer_community.id,
                             "address": "0x0123",
                         }
                     ),
@@ -156,7 +156,7 @@ def _(scorer_community_with_binary_scorer, scorer_api_key):
                     "/registry/submit-passport",
                     json.dumps(
                         {
-                            "community": scorer_community_with_binary_scorer.id,
+                            "community_id": scorer_community_with_binary_scorer.id,
                             "address": "0x0123",
                         }
                     ),
@@ -215,7 +215,7 @@ def _(scorer_community_with_binary_scorer, scorer_api_key):
                     "/registry/submit-passport",
                     json.dumps(
                         {
-                            "community": scorer_community_with_binary_scorer.id,
+                            "community_id": scorer_community_with_binary_scorer.id,
                             "address": "0x0123",
                         }
                     ),

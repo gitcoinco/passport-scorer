@@ -302,7 +302,7 @@ class ValidatePassportTestCase(TransactionTestCase):
         payload = {
             "address": self.account.address,
             "signature": self.signed_message.signature.hex(),
-            "community": self.community.id,
+            "community_id": self.community.id,
         }
 
         response = self.client.post(
@@ -332,7 +332,7 @@ class ValidatePassportTestCase(TransactionTestCase):
     @patch("registry.tasks.get_passport", return_value=mock_passport)
     def test_signature_not_needed_by_default(self, get_passport, validate_credential):
         payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.account.address,
         }
 
@@ -358,7 +358,7 @@ class ValidatePassportTestCase(TransactionTestCase):
         did = f"did:pkh:eip155:1:{self.account.address.lower()}"
 
         payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.account.address,
             "signature": self.signed_message.signature.hex(),
             "nonce": self.nonce,
@@ -400,7 +400,7 @@ class ValidatePassportTestCase(TransactionTestCase):
         did = f"did:pkh:eip155:1:{self.account.address.lower()}"
 
         payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.account.address,
             "signature": self.signed_message.signature.hex(),
             "nonce": self.nonce,
@@ -423,7 +423,7 @@ class ValidatePassportTestCase(TransactionTestCase):
     @patch("registry.tasks.get_passport", return_value={})
     def test_submitting_without_passport(self, get_passport, validate_credential):
         payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.account.address,
             "signature": self.signed_message.signature.hex(),
             "nonce": self.nonce,
@@ -477,7 +477,7 @@ class ValidatePassportTestCase(TransactionTestCase):
         did = f"did:pkh:eip155:1:{self.account.address.lower()}"
 
         payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.account.address,
             "signature": self.signed_message.signature.hex(),
             "nonce": self.nonce,
@@ -530,7 +530,7 @@ class ValidatePassportTestCase(TransactionTestCase):
         )
 
         payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.account.address,
             "signature": signed_message.signature.hex(),
             "nonce": nonce,
@@ -611,7 +611,7 @@ class ValidatePassportTestCase(TransactionTestCase):
         """
 
         payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.account.address,
             "signature": self.signed_message.signature.hex(),
             "nonce": self.nonce,
@@ -656,7 +656,7 @@ class ValidatePassportTestCase(TransactionTestCase):
         """
 
         payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.account.address,
             "signature": self.signed_message.signature.hex(),
             "nonce": self.nonce,
@@ -701,7 +701,7 @@ class ValidatePassportTestCase(TransactionTestCase):
         """
 
         payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.account.address,
             "signature": self.signed_message.signature.hex(),
             "nonce": self.nonce,
@@ -734,7 +734,7 @@ class ValidatePassportTestCase(TransactionTestCase):
         """
 
         payload = {
-            "community": self.community2.id,
+            "community_id": self.community2.id,
             "address": self.account.address,
             "signature": self.signed_message.signature.hex(),
             "nonce": self.nonce,
@@ -786,7 +786,7 @@ class ValidatePassportTestCase(TransactionTestCase):
 
         # Now we submit a duplicate hash, and expect deduplication to happen
         submission_test_payload = {
-            "community": self.community.id,
+            "community_id": self.community.id,
             "address": self.mock_account.address,
             "signature": self.mock_signed_message.signature.hex(),
             "nonce": self.nonce,
