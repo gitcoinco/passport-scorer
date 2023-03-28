@@ -494,6 +494,24 @@ const taskMigrate = new awsx.ecs.FargateTaskDefinition(`scorer-run-migrate`, {
       environment: environment,
       dependsOn: [],
       links: [],
+      firelensConfiguration: {
+        type: "fluentbit",
+        options: {
+          "enable-ecs-log-metadata": "true"
+        }
+      },
+      logConfiguration: {
+        "logDriver": "awsfirelens",
+        "options": {
+            "Name": "datadog",
+            "apiKey": "c10d6455912baafda682935d15320c4d",
+            "dd_service": "passport-scorer",
+            "dd_source": "httpd",
+            "dd_tags": "app:scorer",
+            "TLS": "on",
+            "provider": "ecs"
+        }
+      }
     },
   },
 });
