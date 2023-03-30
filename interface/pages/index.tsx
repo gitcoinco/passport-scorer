@@ -22,6 +22,7 @@ import { useToast, ToastId } from "@chakra-ui/react";
 import PageLayout from "../components/PageLayout";
 import HomePageLayout from "../components/HomePageLayout";
 import NoMatch from "../components/NoMatch";
+import { useClickOutsideToast } from "../components/useClickOutsideToast";
 
 // Layout Route pattern from https://reactrouter.com/en/main/start/concepts#layout-routes
 export const PageRoutes = () => (
@@ -42,29 +43,11 @@ export const PageRoutes = () => (
 
 const PageRouter = () => {
   const { loginComplete } = useContext(UserContext);
-  const toast = useToast();
-  const toastIdRef = useRef<ToastId | undefined>();
-
-  function closeToast() {
-    if (toastIdRef.current) {
-      toast.close(toastIdRef.current)
-    }
-  }
-
-  useEffect(() => {
-    window.addEventListener("click", (e) => {
-      closeToast()
-    });
-    return () => {
-      window.removeEventListener("click", (e) => {
-        closeToast();
-      })
-    }
-  });
+  const { openToast } = useClickOutsideToast();
 
   useEffect(() => {
     if (loginComplete) {
-      toastIdRef.current = toast({
+      openToast({
         duration: null,
         isClosable: true,
         render: (result: any) => (

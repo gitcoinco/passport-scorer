@@ -9,6 +9,8 @@ import { CheckCircleIcon, CloseIcon, AddIcon } from "@chakra-ui/icons";
 import CommunityCard from "./CommunityCard";
 import NoValues from "./NoValues";
 
+import { useClickOutsideToast } from './useClickOutsideToast';
+
 // --- Utils
 import {
   getCommunities,
@@ -24,30 +26,13 @@ import { StarIcon } from "@heroicons/react/24/outline";
 
 const CommunityList = () => {
   const toast = useToast();
-  const toastIdRef = useRef<ToastId | undefined>();
   const [selectUseCaseModalOpen, setSelectUseCaseModalOpen] = useState(false);
   const [error, setError] = useState<undefined | string>();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [communityLoadingStatus, setCommunityLoadingStatus] =
     useState<string>("initial");
   const { logout } = useContext(UserContext);
-
-  function closeToast() {
-    if (toastIdRef.current) {
-      toast.close(toastIdRef.current)
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener("click", (e) => {
-      closeToast()
-    });
-    return () => {
-      window.removeEventListener("click", (e) => {
-        closeToast();
-      })
-    }
-  });
+  const { toastIdRef, openToast } = useClickOutsideToast();
 
   const fetchCommunities = useCallback(async () => {
     try {
@@ -68,7 +53,7 @@ const CommunityList = () => {
     const scorerCreated = Boolean(localStorage.getItem("scorerCreated"));
 
     if (scorerCreated) {
-      toastIdRef.current = toast(successToast("Your Scorer has been created.", toast));
+      openToast(successToast("Your Scorer has been created.", toast));
       localStorage.removeItem("scorerCreated");
     }
 

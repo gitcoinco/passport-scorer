@@ -29,6 +29,8 @@ import { UseCaseInterface, useCases } from "./UseCaseModal";
 import { createCommunity } from "../utils/account-requests";
 import { CloseIcon } from "@chakra-ui/icons";
 import PopoverInfo from "./PopoverInfo";
+import { useClickOutsideToast } from "./useClickOutsideToast";
+import { warningToast } from "./Toasts";
 
 type DeduplicationType = "FIFO" | "LIFO";
 
@@ -88,7 +90,7 @@ const PageFooter = ({
 }: any) => (
   <footer
     className={
-      `mt-6 w-full border-t border-gray-lightgray bg-white py-6 ` + PAGE_PADDING
+      `mt-6 w-full border-t border-gray-lightgray bg-white py-6 fixed inset-x-0 bottom-0 ` + PAGE_PADDING
     }
   >
     <div className="mx-auto overflow-hidden md:flex md:justify-end">
@@ -112,7 +114,7 @@ const PageFooter = ({
       isOpen={cancelModal}
       isCentered={true}
       size={{ base: "xs", md: "lg", lg: "lg", xl: "lg" }}
-      onClose={() => {}}
+      onClose={() => { }}
     >
       <ModalOverlay />
       <ModalContent>
@@ -174,6 +176,7 @@ const Subheader = ({ useCase, name, description }: any) => (
 const NewScorer = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const { openToast } = useClickOutsideToast();
   const [useCase, setUseCase] = useState<UseCaseInterface | undefined>(
     undefined
   );
@@ -217,37 +220,38 @@ const NewScorer = () => {
       localStorage.setItem("scorerCreated", "true");
       navigate("/dashboard/scorer");
     } catch (e) {
-      toast({
-        title: "Warning!",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-        variant: "solid",
-        position: "bottom",
-        render: () => (
-          <div
-            style={{
-              backgroundColor: "#FDDEE4",
-              borderRadius: "4px",
-              display: "flex",
-              alignItems: "center",
-              padding: "16px",
-            }}
-          >
-            <ExclamationCircleIcon className="mr-3 w-6 text-[#D44D6E]" />
-            <span style={{ color: "#0E0333", fontSize: "16px" }}>
-              Something went wrong. Please try again.
-            </span>
-            <CloseIcon
-              color="#0E0333"
-              boxSize={3}
-              ml="8"
-              cursor="pointer"
-              onClick={() => toast.closeAll()}
-            />
-          </div>
-        ),
-      });
+      openToast(warningToast("Something went wrong. Please try again.", toast));
+      // {
+      //   title: "Warning!",
+      //   status: "warning",
+      //   duration: 3000,
+      //   isClosable: true,
+      //   variant: "solid",
+      //   position: "bottom",
+      //   render: () => (
+      //     <div
+      //       style={{
+      //         backgroundColor: "#FDDEE4",
+      //         borderRadius: "4px",
+      //         display: "flex",
+      //         alignItems: "center",
+      //         padding: "16px",
+      //       }}
+      //     >
+      //       <ExclamationCircleIcon className="mr-3 w-6 text-[#D44D6E]" />
+      //       <span style={{ color: "#0E0333", fontSize: "16px" }}>
+      //         Something went wrong. Please try again.
+      //       </span>
+      //       <CloseIcon
+      //         color="#0E0333"
+      //         boxSize={3}
+      //         ml="8"
+      //         cursor="pointer"
+      //         onClick={() => toast.closeAll()}
+      //       />
+      //     </div>
+      //   ),
+      // }
     }
   }, [
     name,
@@ -257,85 +261,6 @@ const NewScorer = () => {
     gitcoinScoringMechanism,
     navigate,
     toast,
-  ]);
-
-  const PageFooter = useMemo(() => {
-    const FooterOverride = ({ className }: { className?: string }) => (
-      <footer
-        className={
-          `mt-6 w-full border-t border-gray-lightgray bg-white py-6 fixed inset-x-0 bottom-0 ` +
-          className
-        }
-      >
-        <div className="mx-auto overflow-hidden md:flex md:justify-end">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <button
-              className="order-last h-10 w-full rounded border border-gray-lightgray px-6 text-sm md:order-first md:w-[139px]"
-              onClick={() => setCancelModal(true)}
-            >
-              Cancel
-            </button>
-            <button
-              className="h-10 w-full rounded bg-purple-gitcoinpurple text-sm text-white md:w-36"
-              onClick={createScorer}
-              disabled={!gitcoinScoringMechanism || !deduplication || isLoading}
-            >
-              Create Scorer
-            </button>
-          </div>
-        </div>
-        <Modal
-          isOpen={cancelModal}
-          isCentered={true}
-          size={{ base: "xs", md: "lg", lg: "lg", xl: "lg" }}
-          onClose={() => { }}
-        >
-          <ModalOverlay />
-          <ModalContent>
-            <ModalBody>
-              <div className="py-6 text-purple-darkpurple">
-                <div className="flex items-center justify-center">
-                  <div className="mb-4 flex h-12 w-12 justify-center rounded-full bg-[#FDDEE4]">
-                    <NoSymbolIcon className="w-7 text-[#D44D6E]" />
-                  </div>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold">Are you sure?</p>
-                  <p className="mt-2 text-purple-softpurple">
-                    Your scorer has not been saved, if you exit now your changes
-                    will not be saved.
-                  </p>
-                </div>
-                <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <button
-                    className="order-last w-full rounded border border-gray-lightgray py-2 px-6 text-base md:order-first"
-                    onClick={handleCancellation}
-                  >
-                    Exit Scorer
-                  </button>
-                  <button
-                    className="w-full rounded bg-purple-gitcoinpurple py-2 px-6 text-base text-white"
-                    onClick={() => setCancelModal(false)}
-                  >
-                    Continue Editing
-                  </button>
-                </div>
-              </div>
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      </footer>
-    );
-    return generateFooter(FooterOverride);
-  }, [
-    cancelModal,
-    setCancelModal,
-    handleCancellation,
-    createScorer,
-    isLoading,
-    generateFooter,
-    deduplication,
-    gitcoinScoringMechanism,
   ]);
 
   return (

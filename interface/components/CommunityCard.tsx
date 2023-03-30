@@ -34,6 +34,8 @@ import {
 import { CloseIcon } from "@chakra-ui/icons";
 import { UseCaseInterface, useCases } from "./UseCaseModal";
 import { SpinnerIcon } from "./CustomIcons";
+import { useClickOutsideToast } from "./useClickOutsideToast";
+import { warningToast } from "./Toasts";
 
 interface UseCaseMap {
   [k: string]: UseCaseInterface;
@@ -93,7 +95,7 @@ const RenameModal = ({
     setInProgress(true);
     try {
       await onSaveChanges(scorerName, scorerDescription);
-    } catch (e) {}
+    } catch (e) { }
     setInProgress(false);
   };
 
@@ -167,7 +169,7 @@ const DeleteConfirmationModal = ({
     setInProgress(true);
     try {
       await onConfirm();
-    } catch (e) {}
+    } catch (e) { }
     setInProgress(false);
   };
   return (
@@ -175,7 +177,7 @@ const DeleteConfirmationModal = ({
       isOpen={isOpen}
       isCentered={true}
       size={{ base: "xs", md: "lg", lg: "lg", xl: "lg" }}
-      onClose={() => {}}
+      onClose={() => { }}
     >
       <ModalOverlay />
       <ModalContent>
@@ -257,6 +259,7 @@ const CommunityCard = ({
   handleDeleteCommunity,
 }: CommunityCardProps): JSX.Element => {
   const toast = useToast();
+  const { openToast } = useClickOutsideToast();
   let useCase = useCasesByName[community.use_case];
   let [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
   let [isDeleteConfirmationModalOpen, setIsDeleteConfirmationModalOpen] =
@@ -276,7 +279,7 @@ const CommunityCard = ({
   const handleCancelDelete = () => {
     try {
       setIsDeleteConfirmationModalOpen(false);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const saveChanges = async (name: string, description: string) => {
@@ -284,7 +287,7 @@ const CommunityCard = ({
       await handleUpdateCommunity(community.id, name, description);
       setIsRenameModalOpen(false);
     } catch (e) {
-      toast(getErrorToast(toast));
+      openToast(warningToast("Something went wrong. Please try again.", toast));
     }
   };
 
@@ -293,7 +296,7 @@ const CommunityCard = ({
       await handleDeleteCommunity(community.id);
       setIsDeleteConfirmationModalOpen(false);
     } catch (e) {
-      toast(getErrorToast(toast));
+      openToast(warningToast("Something went wrong. Please try again.", toast));
     }
   };
 
