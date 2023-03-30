@@ -87,6 +87,7 @@ class Account(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="account"
     )
+    privileged = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.address} - {self.user}"
