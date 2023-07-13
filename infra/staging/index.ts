@@ -187,6 +187,30 @@ const certificateValidation = new aws.acm.CertificateValidation(
 // Creates an ALB associated with our custom VPC.
 const alb = new awsx.lb.ApplicationLoadBalancer(`scorer-service`, { vpc });
 
+const wafrule = new aws.waf.Rule("scorer-waf", {
+  metricName: "scorerRule",
+  predicates: [{
+      dataId: alb.urn,
+      negated: false,
+      type: "IPMatch",
+  }],
+});
+
+const wafAcl = new aws.waf.WebAcl("wafAcl", {
+  metricName: "scorerACL",
+  defaultAction: {
+      type: "ALLOW",
+  },
+  rules: [{
+      action: {
+          type: "BLOCK",
+      },
+      priority: 1,
+      ruleId: wafrule.id,
+      type: "REGULAR",
+  }],
+});
+
 // Listen to HTTP traffic on port 80 and redirect to 443
 const httpListener = alb.createListener("web-listener", {
   port: 80,
