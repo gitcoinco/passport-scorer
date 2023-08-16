@@ -529,7 +529,7 @@ const ecsScorerServiceAutoscalingTarget = new aws.appautoscaling.Target(
   "scorer-autoscaling-target",
   {
     maxCapacity: 20,
-    minCapacity: 2,
+    minCapacity: 5,
     resourceId: pulumi.interpolate`service/${cluster.cluster.name}/${service.service.name}`,
     scalableDimension: "ecs:service:DesiredCount",
     serviceNamespace: "ecs",
@@ -547,9 +547,9 @@ const ecsScorerServiceAutoscaling = new aws.appautoscaling.Policy(
       predefinedMetricSpecification: {
         predefinedMetricType: "ECSServiceAverageCPUUtilization",
       },
-      targetValue: 30,
-      scaleInCooldown: 300,
-      scaleOutCooldown: 300,
+      targetValue: 50,
+      scaleInCooldown: 600,
+      scaleOutCooldown: 150,
     },
   }
 );
@@ -647,8 +647,8 @@ const celery1 = new awsx.ecs.FargateService("scorer-bkgrnd-worker-registry", {
 const ecsScorerWorker1AutoscalingTarget = new aws.appautoscaling.Target(
   "scorer-worker1-autoscaling-target",
   {
-    maxCapacity: 4,
-    minCapacity: 0,
+    maxCapacity: 400,
+    minCapacity: 5,
     resourceId: pulumi.interpolate`service/${cluster.cluster.name}/${celery1.service.name}`,
     scalableDimension: "ecs:service:DesiredCount",
     serviceNamespace: "ecs",
@@ -666,9 +666,9 @@ const ecsScorerWorker1Autoscaling = new aws.appautoscaling.Policy(
       predefinedMetricSpecification: {
         predefinedMetricType: "ECSServiceAverageCPUUtilization",
       },
-      targetValue: 30,
-      scaleInCooldown: 300,
-      scaleOutCooldown: 30,
+      targetValue: 50,
+      scaleInCooldown: 600,
+      scaleOutCooldown: 150,
     },
   }
 );
@@ -726,9 +726,9 @@ const ecsScorerWorker2Autoscaling = new aws.appautoscaling.Policy(
       predefinedMetricSpecification: {
         predefinedMetricType: "ECSServiceAverageCPUUtilization",
       },
-      targetValue: 30,
-      scaleInCooldown: 300,
-      scaleOutCooldown: 30,
+      targetValue: 50,
+      scaleInCooldown: 600,
+      scaleOutCooldown: 150,
     },
   }
 );
