@@ -1,5 +1,6 @@
 import base64
 import json
+import os
 from datetime import datetime, timezone
 from functools import wraps
 from typing import Tuple
@@ -27,6 +28,13 @@ def index(request):
     return render(request, "registry/index.html", context)
 
 
+def load_types():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    json_file_path = os.path.join(current_dir, "static_credential_types.json")
+    with open(json_file_path, "r") as file:
+        return json.load(file)
+
+
 async def validate_credential(did, credential):
     # pylint: disable=fixme
     stamp_return_errors = []
@@ -52,6 +60,8 @@ async def validate_credential(did, credential):
 
     if did != stamp_did:
         stamp_return_errors.append("Did mismatch")
+
+    credential["proof"]["eip712Domain"]["types"] = load_types()
 
     # pylint: disable=no-member
     verification = await didkit.verify_credential(
