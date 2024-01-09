@@ -445,7 +445,7 @@ const alb = new aws.alb.LoadBalancer(`scorer-service`, {
   securityGroups: [albSecGrp.id],
   subnets: vpcPublicSubnetIds,
   accessLogs: {
-    bucket: accessLogsBucket.bucket,
+    bucket: "arn:aws:s3:::datadog-forwarder-us-west-2-forwarderbucket-lsppwrzazepk",
     enabled: true,
   },
   tags: {
