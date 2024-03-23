@@ -74,9 +74,7 @@ class NonceField(models.CharField):
 
 
 class Nonce(models.Model):
-    nonce = models.CharField(
-        max_length=60, blank=False, null=False, unique=True, db_index=True
-    )
+    nonce = NonceField(blank=False, null=False, unique=True, db_index=True)
     created_on = models.DateTimeField(auto_now_add=True)
     expires_on = models.DateTimeField(null=True, blank=True)
     was_used = models.BooleanField(default=False)
@@ -312,3 +310,9 @@ class Community(models.Model):
             return await WeightedScorer.objects.aget(scorer_ptr_id=scorer.id)
         elif scorer.type == Scorer.Type.WEIGHTED_BINARY:
             return await BinaryWeightedScorer.objects.aget(scorer_ptr_id=scorer.id)
+
+
+class Customization(models.Model):
+    path = models.CharField(max_length=100)
+    scorer = models.ForeignKey(Community, on_delete=models.PROTECT)
+    text = models.TextField()

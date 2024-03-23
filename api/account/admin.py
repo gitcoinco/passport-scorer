@@ -1,14 +1,16 @@
 import boto3
+from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django_ace import AceWidget
 from rest_framework_api_key.admin import APIKeyAdmin
 from scorer.scorer_admin import ScorerModelAdmin
 from scorer_weighted.models import Scorer
 
-from .models import Account, AccountAPIKey, Community
+from .models import Account, AccountAPIKey, Community, Customization
 
 
 @admin.register(Account)
@@ -138,3 +140,36 @@ class AccountAPIKeyAdmin(APIKeyAdmin):
 
 class APIKeyPermissionsAdmin(ScorerModelAdmin):
     list_display = ("id", "submit_passports", "read_scores", "create_scorers")
+
+
+class CustomizationForm(forms.ModelForm):
+    class Meta:
+        model = Customization
+        widgets = {
+            "text": AceWidget(
+                mode="svg",
+                theme=None,  # try for example "twilight"
+                wordwrap=False,
+                width="500px",
+                height="300px",
+                minlines=None,
+                maxlines=None,
+                showprintmargin=True,
+                showinvisibles=False,
+                usesofttabs=True,
+                tabsize=None,
+                fontsize=None,
+                toolbar=True,
+                readonly=False,
+                showgutter=True,  # To hide/show line numbers
+                behaviours=True,  # To disable auto-append of quote when quotes are entered
+            )
+        }
+        fields = "__all__"
+
+
+@admin.register(Customization)
+class CustomizationAdmin(ScorerModelAdmin):
+    form = CustomizationForm
+
+    list_display = ("id", "text")
