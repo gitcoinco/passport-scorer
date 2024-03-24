@@ -6,7 +6,7 @@ import { TabLayout } from './tab-contents'
 import { GITCOIN_PASSPORT_WEIGHTS } from './stamp-weights';
 
 const decoderContractAddress = "0xa652BE6A92c7efbBfEEf6b67eEF10A146AAA8ADc";
-const abi = require('./PassportDecoderABI.json')
+const abi = require('./abis.ts')
 
 declare global {
   interface Window {
@@ -58,50 +58,51 @@ export default function Passport() {
     return true
   }
 
-
+  /** get passport info from decoder contract */
   async function getPassportInfo() {
-    const decoderContract: ethers.Contract = new ethers.Contract(decoderContractAddress, new ethers.Interface(abi['0x1a4']), provider)
-    const passportInfo: [] = await decoderContract.getPassport(address) // test address '0x85fF01cfF157199527528788ec4eA6336615C989'
-    if (passportInfo.length > 1) {
-      setHasStamps(true)
+    console.log(address)
+    const decoderContract: ethers.Contract = new ethers.Contract(decoderContractAddress, new ethers.Interface(abi.DecoderAbi['0x14a33']), provider)
+    try {
+      const passportInfo: [] = await decoderContract.getPassport(address) // test address '0x85fF01cfF157199527528788ec4eA6336615C989'
+      return passportInfo
+    } catch {
+      throw new Error("no passport information available")
     }
-    return passportInfo
   }
 
+  /** get poassport score from decoder contract */
+  async function getScore() {
+    const decoderContract: ethers.Contract = new ethers.Contract(decoderContractAddress, new ethers.Interface(abi.DecoderAbi['0x14a33']), provider)
+    try {
+      const score = await decoderContract.getScore(address)
+      return score
+    } catch {
+      throw new Error("no passport info available")
+    }
+  }
 
-  async function getStamps(passportInfo: []) {
+  /** parse out stamps from passport info object*/
+  function getStamps(passportInfo: []) {
     var stamps: Stamp[] = [];
     for (var i = 0; i < passportInfo.length; i++) {
       stamps.push({ id: i, stamp: passportInfo[i][0] })
     }
-    setStamps(stamps)
     return stamps
   }
 
+  /** call getPassportInfo and getStamps and set state vars */
   async function queryPassport() {
-    const passportInfo = await getPassportInfo()
-    const stamps = await getStamps(passportInfo);
-    const score = calculate_score(stamps)
-    setScore(score)
+    const passportData = await getPassportInfo();
+    const stamps = getStamps(passportData);
+    if (stamps.length > 1) {
+      setHasStamps(true)
+      setStamps(stamps)
+    }
+    const score = await getScore()
+    setScore(parseInt(score) / 10000)
   }
 
-  function calculate_score(stampData: Array<Stamp>) {
-    let i = 0
-    var scores: Array<number> = []
-    let names = stampData.map(entry => entry.stamp);
 
-    names.forEach(name => {
-      if (GITCOIN_PASSPORT_WEIGHTS.hasOwnProperty(name)) {
-        let key = name as keyof Object;
-        let value = GITCOIN_PASSPORT_WEIGHTS[key].toString();
-        scores.push(parseFloat(value))
-      }
-    })
-
-    const totalScore = scores.reduce((acc, currentScore) => acc + currentScore, 0)
-
-    return totalScore
-  }
 
   const styles = {
     main: {
@@ -136,4 +137,3 @@ export default function Passport() {
     </div >
   )
 }
-
