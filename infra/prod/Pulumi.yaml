@@ -1,3 +1,3 @@
 name: prod
-description: Produciton infrastructure for passport scorer
+description: Production infrastructure for passport scorer
 runtime: nodejs

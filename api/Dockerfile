@@ -47,6 +47,6 @@ ENV PATH="/usr/src/.venv/bin/:${PATH}"
 
 WORKDIR /app
 
-RUN STATIC_ROOT=/app/static SECRET_KEY=secret_is_irelevent_here CERAMIC_CACHE_SCORER_ID=1 DATABASE_URL=sqlite:////dunmmy_db.sqlite3 python manage.py collectstatic --noinput
+RUN STATIC_ROOT=/app/static SECRET_KEY=secret_is_irrelevant_here CERAMIC_CACHE_SCORER_ID=1 DATABASE_URL=sqlite:////dunmmy_db.sqlite3 python manage.py collectstatic --noinput
 
 CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "scorer.asgi:application", "-b", "0.0.0.0:8000"]
