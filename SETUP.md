@@ -35,12 +35,12 @@ Update the `DATABASE_URL` variable to `postgres://passport_scorer:passport_score
 Update the `CERAMIC_CACHE_SCORER_ID` variable to match a `SCORER_ID` you create from the scorer UI.
    (You will have to complete all these setup steps first, then you will be able to create a `SCORER_ID` from the UI & update this variable.)
 
-3. Create a new `.env` file in the `interface` directory & update the varaibles.
+3. Create a new `.env` file in the `interface` directory & update the variables.
 ```shell
 # From inside the interface/ directory
 cp .env.example .env
 ```
-Update the `NEXT_PUBLIC_PASSPORT_SCORER_ALCHEMY_API_KEY` varaible to an Alchemy API key you own. If you don't have one, you can create one for free [here](https://docs.alchemy.com/reference/api-overview)
+Update the `NEXT_PUBLIC_PASSPORT_SCORER_ALCHEMY_API_KEY` variable to an Alchemy API key you own. If you don't have one, you can create one for free [here](https://docs.alchemy.com/reference/api-overview)
 
 
 4. Run and build the `Dockerfile` from the root directory. The first time you run this, it will take
@@ -162,7 +162,7 @@ Copy the `.env.example` file:
 cp .env.example .env
 ```
 
-Update the `NEXT_PUBLIC_PASSPORT_SCORER_ALCHEMY_API_KEY` varaible to an Alchemy API key you own. If you don't have one, you can create one for free [here](https://docs.alchemy.com/reference/api-overview)
+Update the `NEXT_PUBLIC_PASSPORT_SCORER_ALCHEMY_API_KEY` variable to an Alchemy API key you own. If you don't have one, you can create one for free [here](https://docs.alchemy.com/reference/api-overview)
 
 To start the development server:
 

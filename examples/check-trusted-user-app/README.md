@@ -6,7 +6,7 @@ from Gitcoin passport. The app is built in Nextjs using `create-next-app` and Ch
 
 ## Getting Started
 
-This repository contains source code to accompany a "trusted user app" walkthrouhg tutorial at [docs.gitcoin.co](https://docs.passport.gitcoin.co/building-with-passport/integration-guides/integrating-stamps-and-scorers).
+This repository contains source code to accompany a "trusted user app" walkthrough tutorial at [docs.gitcoin.co](https://docs.passport.gitcoin.co/building-with-passport/integration-guides/integrating-stamps-and-scorers).
 
 You can find step-by-step instructions for setting up and running this app in the tutorial.
 
@@ -25,7 +25,7 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 You will need a web3 wallet, ideally one that already owns a Gitcoin Passport with several
-stamps.Otherwise, you won't be able to do very much with this app!
+stamps. Otherwise, you won't be able to do very much with this app!
 
 ## Learn More
 
