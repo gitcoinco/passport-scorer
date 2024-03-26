@@ -51,8 +51,8 @@ impl<'a> StakingIndexer<'a> {
         loop {
             let start_block = self.postgres_client.get_latest_block(self.chain_id, self.start_block).await?;
             println!(
-                "Debug - Starting indexer for chain {} at block {}",
-                self.chain_id, start_block
+                "Debug - Starting indexer for chain {} at block {} at {}",
+                self.chain_id, start_block, chrono::Utc::now()
             );
 
             match try_join!(
@@ -194,30 +194,31 @@ impl<'a> StakingIndexer<'a> {
     ) -> Result<()> {
         let block_number = meta.block_number.as_u64();
         let tx_hash = format!("{:?}", meta.transaction_hash);
+        let block_timestamp = self.get_timestamp_for_block_number(block_number, client).await?;
 
         match event {
             IdentityStakingEvents::SelfStakeFilter(event) => {
-                self.process_self_stake_event(&event, block_number, &tx_hash, &client)
+                self.process_self_stake_event(&event, block_number, &tx_hash, block_timestamp)
                     .await
             }
             IdentityStakingEvents::CommunityStakeFilter(event) => {
-                self.process_community_stake_event(&event, block_number, &tx_hash, &client)
+                self.process_community_stake_event(&event, block_number, &tx_hash, block_timestamp)
                     .await
             }
             IdentityStakingEvents::SelfStakeWithdrawnFilter(event) => {
-                self.process_self_stake_withdrawn_event(&event, block_number, &tx_hash)
+                self.process_self_stake_withdrawn_event(&event, block_number, &tx_hash, block_timestamp)
                     .await
             }
             IdentityStakingEvents::CommunityStakeWithdrawnFilter(event) => {
-                self.process_community_stake_withdrawn_event(&event, block_number, &tx_hash)
+                self.process_community_stake_withdrawn_event(&event, block_number, &tx_hash, block_timestamp)
                     .await
             }
             IdentityStakingEvents::SlashFilter(event) => {
-                self.process_slash_event(&event, block_number, &tx_hash)
+                self.process_slash_event(&event, block_number, &tx_hash, block_timestamp)
                     .await
             }
             IdentityStakingEvents::ReleaseFilter(event) => {
-                self.process_release_event(&event, block_number, &tx_hash)
+                self.process_release_event(&event, block_number, &tx_hash, block_timestamp)
                     .await
             }
             _ => {
@@ -251,10 +252,8 @@ impl<'a> StakingIndexer<'a> {
         event: &SelfStakeFilter,
         block_number: u64,
         tx_hash: &String,
-        client: &Arc<ethers::providers::Provider<ethers::providers::Ws>>,
+        block_timestamp: u64,
     ) -> Result<()> {
-        let timestamp = self.get_timestamp_for_block_number(block_number, client).await?;
-
         if let Err(err) = self
             .postgres_client
             .add_or_extend_stake(
@@ -264,7 +263,7 @@ impl<'a> StakingIndexer<'a> {
                 &event.staker,
                 &event.amount,
                 &event.unlock_time,
-                &timestamp,
+                &block_timestamp,
                 &block_number,
                 tx_hash,
             )
@@ -283,10 +282,8 @@ impl<'a> StakingIndexer<'a> {
         event: &CommunityStakeFilter,
         block_number: u64,
         tx_hash: &String,
-        client: &Arc<ethers::providers::Provider<ethers::providers::Ws>>,
+        block_timestamp: u64,
     ) -> Result<()> {
-        let timestamp = self.get_timestamp_for_block_number(block_number, client).await?;
-
         if let Err(err) = self
             .postgres_client
             .add_or_extend_stake(
@@ -296,7 +293,7 @@ impl<'a> StakingIndexer<'a> {
                 &event.stakee,
                 &event.amount,
                 &event.unlock_time,
-                &timestamp,
+                &block_timestamp,
                 &block_number,
                 tx_hash,
             )
@@ -315,6 +312,7 @@ impl<'a> StakingIndexer<'a> {
         event: &SelfStakeWithdrawnFilter,
         block_number: u64,
         tx_hash: &String,
+        block_timestamp: u64,
     ) -> Result<()> {
         if let Err(err) = self
             .postgres_client
@@ -327,6 +325,7 @@ impl<'a> StakingIndexer<'a> {
                 StakeAmountOperation::Subtract,
                 &block_number,
                 tx_hash,
+                block_timestamp,
             )
             .await
         {
@@ -343,6 +342,7 @@ impl<'a> StakingIndexer<'a> {
         event: &CommunityStakeWithdrawnFilter,
         block_number: u64,
         tx_hash: &String,
+        block_timestamp: u64,
     ) -> Result<()> {
         if let Err(err) = self
             .postgres_client
@@ -355,6 +355,7 @@ impl<'a> StakingIndexer<'a> {
                 StakeAmountOperation::Subtract,
                 &block_number,
                 tx_hash,
+                block_timestamp,
             )
             .await
         {
@@ -371,6 +372,7 @@ impl<'a> StakingIndexer<'a> {
         event: &SlashFilter,
         block_number: u64,
         tx_hash: &String,
+        block_timestamp: u64,
     ) -> Result<()> {
         if let Err(err) = self
             .postgres_client
@@ -383,6 +385,7 @@ impl<'a> StakingIndexer<'a> {
                 StakeAmountOperation::Subtract,
                 &block_number,
                 tx_hash,
+                block_timestamp,
             )
             .await
         {
@@ -399,6 +402,7 @@ impl<'a> StakingIndexer<'a> {
         event: &ReleaseFilter,
         block_number: u64,
         tx_hash: &String,
+        block_timestamp: u64,
     ) -> Result<()> {
         if let Err(err) = self
             .postgres_client
@@ -411,6 +415,7 @@ impl<'a> StakingIndexer<'a> {
                 StakeAmountOperation::Add,
                 &block_number,
                 tx_hash,
+                block_timestamp,
             )
             .await
         {

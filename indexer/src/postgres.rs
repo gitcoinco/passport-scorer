@@ -50,14 +50,15 @@ impl PostgresClient {
         staked: bool,
         block_number: i32,
         tx_hash: &str,
+        block_timestamp: u64,
     ) -> Result<(), Error> {
         let mut decimal_amount = Decimal::from_str(amount).unwrap();
         let _ = decimal_amount.set_scale(18).unwrap();
         let client = self.pool.get().await.unwrap();
         client.execute("INSERT INTO registry_gtcstakeevent (event_type, round_id, staker, amount, staked, block_number, tx_hash) VALUES ($1, $2, $3, $4, $5, $6, $7)",&[&"SelfStake", &round_id, &staker, &decimal_amount, &staked, &block_number, &tx_hash]).await?;
         println!(
-            "Row inserted into registry_gtcstakeevent with type SelfStake for block {}!",
-            block_number
+            "Row inserted into registry_gtcstakeevent with type SelfStake for block {} with block time {} at {}!",
+            block_number, self.unix_time_to_datetime(&block_timestamp), Utc::now()
         );
         Ok(())
     }
@@ -72,14 +73,15 @@ impl PostgresClient {
         staked: bool,
         block_number: i32,
         tx_hash: &str,
+        block_timestamp: u64,
     ) -> Result<(), Error> {
         let mut decimal_amount = Decimal::from_str(amount).unwrap();
         let _ = decimal_amount.set_scale(18).unwrap();
         let client = self.pool.get().await.unwrap();
         client.execute("INSERT INTO registry_gtcstakeevent (event_type, round_id, staker, address, amount, staked, block_number, tx_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", &[&"Xstake", &round_id, &staker, &user, &decimal_amount, &staked, &block_number, &tx_hash]).await?;
         println!(
-            "Row inserted into registry_gtcstakeevent with type Xstake for block {}!",
-            block_number
+            "Row inserted into registry_gtcstakeevent with type Xstake for block {} with block time {} at {}!",
+            block_number, self.unix_time_to_datetime(&block_timestamp), Utc::now()
         );
         Ok(())
     }
@@ -134,8 +136,8 @@ impl PostgresClient {
         ).await?;
 
         println!(
-            "Added or extended stake in block {} on chain {}!",
-            block_number, chain_id
+            "Added or extended stake in block {} on chain {} with block time {} at {}!",
+            block_number, chain_id, lock_time, Utc::now()
         );
 
         Ok(())
@@ -151,6 +153,7 @@ impl PostgresClient {
         operation: StakeAmountOperation,
         block_number: &u64,
         tx_hash: &str,
+        block_timestamp: u64,
     ) -> Result<(), Error> {
         let chain_id: i32 = chain_id as i32;
         let staker = format!("{:#x}", staker);
@@ -189,8 +192,8 @@ impl PostgresClient {
             .await?;
 
         println!(
-            "Modified stake amount in block {} on chain {}!",
-            block_number, chain_id
+            "Modified stake amount in block {} on chain {} at block time {} at {}!",
+            block_number, chain_id, self.unix_time_to_datetime(&block_timestamp), Utc::now()
         );
 
         Ok(())

@@ -82,6 +82,20 @@ impl<'a> LegacyStakingIndexer<'a> {
         }
     }
 
+    async fn get_timestamp_for_block_number(
+        &self,
+        block_number: u64,
+        client: &Arc<ethers::providers::Provider<ethers::providers::Ws>>,
+    ) -> Result<u64> {
+        if let Ok(Some(block)) = client.get_block(block_number).await {
+            return Ok(block.timestamp.as_u64());
+        }
+        Err(eyre::eyre!(
+            "Failed to fetch block timestamp for block {}",
+            block_number
+        ))
+    }
+
     async fn listen_for_stake_events(&self, query_start_block: &i32) -> Result<()> {
         let client = Arc::new(create_rpc_connection(&self.rpc_url).await);
 
@@ -115,19 +129,31 @@ impl<'a> LegacyStakingIndexer<'a> {
                             IDStakingEvents::SelfStakeFilter(event) => {
                                 let block_number = meta.block_number.as_u32();
                                 let tx_hash = format!("{:?}", meta.transaction_hash);
+                                let block_timestamp = self
+                                    .get_timestamp_for_block_number(block_number as u64, &client)
+                                    .await?;
 
                                 self.format_and_save_self_stake_event(
                                     &event,
                                     block_number,
                                     tx_hash,
+                                    block_timestamp,
                                 )
                                 .await?;
                             }
                             IDStakingEvents::XstakeFilter(event) => {
                                 let block_number = meta.block_number.as_u32();
                                 let tx_hash = format!("{:?}", meta.transaction_hash);
-                                self.format_and_save_x_stake_event(&event, block_number, tx_hash)
-                                    .await?
+                                let block_timestamp = self
+                                    .get_timestamp_for_block_number(block_number as u64, &client)
+                                    .await?;
+                                self.format_and_save_x_stake_event(
+                                    &event,
+                                    block_number,
+                                    tx_hash,
+                                    block_timestamp,
+                                )
+                                .await?;
                             }
                             _ => {
                                 // Catch all for unhandled events
@@ -164,14 +190,17 @@ impl<'a> LegacyStakingIndexer<'a> {
 
             let block_number = meta.block_number.as_u32();
             let tx_hash = format!("{:?}", meta.transaction_hash);
+            let block_timestamp = self
+                .get_timestamp_for_block_number(block_number as u64, &client)
+                .await?;
 
             match event_value {
                 IDStakingEvents::SelfStakeFilter(event_value) => {
-                    self.format_and_save_self_stake_event(&event_value, block_number, tx_hash)
+                    self.format_and_save_self_stake_event(&event_value, block_number, tx_hash, block_timestamp)
                         .await?
                 }
                 IDStakingEvents::XstakeFilter(event_value) => {
-                    self.format_and_save_x_stake_event(&event_value, block_number, tx_hash)
+                    self.format_and_save_x_stake_event(&event_value, block_number, tx_hash, block_timestamp)
                         .await?
                 }
                 _ => {
@@ -188,6 +217,7 @@ impl<'a> LegacyStakingIndexer<'a> {
         event: &SelfStakeFilter,
         block_number: u32,
         transaction_hash: String,
+        block_timestamp: u64,
     ) -> Result<()> {
         let round_id = event.round_id.as_u32();
 
@@ -206,6 +236,7 @@ impl<'a> LegacyStakingIndexer<'a> {
                 staked,
                 block_number.try_into().unwrap(),
                 &transaction_hash,
+                block_timestamp,
             )
             .await
         {
@@ -219,6 +250,7 @@ impl<'a> LegacyStakingIndexer<'a> {
         event: &XstakeFilter,
         block_number: u32,
         transaction_hash: String,
+        block_timestamp: u64,
     ) -> Result<()> {
         // Convert U256 to i32 for round_id
         // Be cautious about overflow, and implement a proper check if necessary
@@ -243,6 +275,7 @@ impl<'a> LegacyStakingIndexer<'a> {
                 staked,
                 block_number.try_into().unwrap(),
                 &transaction_hash,
+                block_timestamp,
             )
             .await
         {
