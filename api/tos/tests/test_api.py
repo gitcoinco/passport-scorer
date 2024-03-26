@@ -13,11 +13,9 @@ client = Client()
 
 
 class TestTos:
-    # def setUp(self):
-    #     #  create the TOS object
-    #     Tos.objects.create(
-    #         type=Tos.TosType.IDENTITY_STAKING, active=True, content="Hello World !!!"
-    #     )
+    """
+    This will test the API functions that are exposed in the ceramic-cache app.
+    """
 
     def test_check_tos_accepted_when_no_tos_exists(self, sample_token):
         """Test that accepted is not confirmed when tos does not exist."""
@@ -84,7 +82,10 @@ class TestTos:
 
         # Create multiple tos, but we only check for the active one in the end
         Tos.objects.create(
-            type=Tos.TosType.IDENTITY_STAKING, active=True, content="Hello World !!!"
+            type=Tos.TosType.IDENTITY_STAKING,
+            active=True,
+            final=True,
+            content="Hello World !!!",
         )
 
         Tos.objects.create(
@@ -111,7 +112,10 @@ class TestTos:
 
         # Create multiple tos, but we only check for the active one in the end
         tos = Tos.objects.create(
-            type=Tos.TosType.IDENTITY_STAKING, active=True, content="Hello World !!!"
+            type=Tos.TosType.IDENTITY_STAKING,
+            active=True,
+            final=True,
+            content="Hello World !!!",
         )
 
         # get a message to sign
