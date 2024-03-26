@@ -20,7 +20,6 @@ def check_tos_accepted(tos_type: str, address: str) -> TosAccepted:
 
 def get_tos_to_sign(tos_type: str, address: str) -> TosToSign:
     text, nonce = Tos.get_message_with_nonce(tos_type)
-
     return TosToSign(text=text, nonce=nonce)
 
 

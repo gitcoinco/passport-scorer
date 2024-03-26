@@ -17,7 +17,14 @@ class Tos(models.Model):
     type = models.CharField(
         max_length=3, choices=TosType.choices, blank=False, db_index=True
     )
-    active = models.BooleanField(default=False)
+    active = models.BooleanField(
+        default=False,
+        help_text="Only 1 active tos is alloed per type. The active is the one that will be required for users to approve",
+    )
+    final = models.BooleanField(
+        default=False,
+        help_text="Once an object is made final, it cannot be edited any more. This is to prevent from editing TOS that might have been accepted by users.",
+    )
     content = models.TextField(blank=False, null=False)
 
     def __str__(self):
@@ -28,14 +35,14 @@ class Tos(models.Model):
 
     @classmethod
     def get_message_with_nonce(cls, type: str) -> tuple[str, str]:
-        tos = Tos.objects.get(type=type, active=True)
+        tos = Tos.objects.get(type=type, active=True, final=True)
         nonce = Nonce.create_nonce()
         return tos.get_message_for_nonce(nonce.nonce), nonce.nonce
 
     @classmethod
     def accept(cls, type: str, nonce: str, signature: str) -> bool:
         if Nonce.use_nonce(nonce):
-            tos = Tos.objects.get(type=type, active=True)
+            tos = Tos.objects.get(type=type, active=True, final=True)
             encoded_message = encode_defunct(text=tos.get_message_for_nonce(nonce))
             address = Account.recover_message(
                 encoded_message,
@@ -55,9 +62,9 @@ class Tos(models.Model):
         constraints = [
             # Ensure only 1 active object at 1 time
             UniqueConstraint(
-                fields=["type", "active"],
-                name="unique_active_tops_for_type",
-                condition=Q(active=True),
+                fields=["type", "final", "active"],
+                name="Only 1 active final tos is allowed for any given type",
+                condition=Q(final=True, active=True),
             ),
         ]
 

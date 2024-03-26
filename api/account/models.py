@@ -28,9 +28,8 @@ HEXA_VALID = RegexValidator(HEXA_RE, "Enter a valid hex string ", "invalid")
 class HexStringField(models.CharField):
     def __init__(self, *args, **kwargs):
         if "validators" not in kwargs:
-            kwargs["validators"] = []
+            kwargs["validators"] = [HEXA_VALID]
 
-        kwargs["validators"] += [HEXA_VALID]
         super(HexStringField, self).__init__(*args, **kwargs)
 
     def get_prep_value(self, value):

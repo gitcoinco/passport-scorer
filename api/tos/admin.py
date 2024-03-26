@@ -1,6 +1,8 @@
 # Register your models here.
+from typing import Any
 from django import forms
 from django.contrib import admin
+from django.http import HttpRequest
 from django_ace import AceWidget
 from scorer.scorer_admin import ScorerModelAdmin
 
@@ -36,10 +38,19 @@ class TosForm(forms.ModelForm):
 @admin.register(Tos)
 class TosAdmin(ScorerModelAdmin):
     form = TosForm
-    list_display = ("id", "type", "active", "created_at", "modified_at")
-    readonly_fields = ("created_at", "modified_at")
+    list_display = ("id", "type", "active", "final", "created_at", "modified_at")
+    readonly_fields = ["created_at", "modified_at"]
     search_fields = ("content", "type")
-    list_filter = ["active", "type"]
+    list_filter = ["active", "final", "type"]
+
+    def get_readonly_fields(
+        self, request: HttpRequest, obj: Tos | None = ...
+    ) -> list[str] | tuple[Any, ...]:
+        ret = ["created_at", "modified_at"]
+        # An active object shall not be made inactive ...
+        if obj and obj.final:
+            ret += ["final", "content", "type"]
+        return ret
 
 
 @admin.register(TosAcceptanceProof)
