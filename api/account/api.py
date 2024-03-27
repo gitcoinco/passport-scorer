@@ -624,6 +624,7 @@ def get_account_customization(request, dashboard_path: str):
             },
             scorer={
                 "weights": weights,
+                "id": customization.scorer.id,
             },
         )
 

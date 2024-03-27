@@ -56,3 +56,7 @@ class ComposeDBStatusPayload(Schema):
 
 class ComporeDBStatusResponse(Schema):
     updated: List[int]
+
+
+class CalcScorePayload(Schema):
+    alternate_scorer_id: Optional[int]
