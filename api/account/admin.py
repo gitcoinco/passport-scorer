@@ -201,7 +201,7 @@ class CustomizationAdmin(ScorerModelAdmin):
         (
             None,
             {
-                "fields": ["path", "scorer"],
+                "fields": ["path", "scorer", "use_custom_dashboard_panel"],
             },
         ),
         (

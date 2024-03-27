@@ -23,7 +23,6 @@ from scorer_weighted.models import (
 from siwe import SiweMessage, siwe
 
 from .deduplication import Rules
-from .schema import CustomizationSchema
 
 log = logging.getLogger(__name__)
 
@@ -598,22 +597,35 @@ def get_account_customization(request, dashboard_path: str):
         elif scorer and getattr(scorer, "binaryweightedscorer", None):
             weights = scorer.binaryweightedscorer.weights
 
-        return CustomizationSchema(
-            path=customization.path,
-            customization_background_1=customization.customization_background_1,
-            customization_background_2=customization.customization_background_2,
-            customization_foreground_1=customization.customization_foreground_1,
-            logo_image=customization.logo_image,
-            logo_caption=customization.logo_caption,
-            logo_background=customization.logo_background,
-            body_main_text=customization.body_main_text,
-            body_sub_text=customization.body_sub_text,
-            body_action_text=customization.body_action_text,
-            body_action_url=customization.body_action_url,
+        return dict(
+            key=customization.path,
+            useCustomDashboardPanel=customization.use_custom_dashboard_panel,
+            customizationTheme={
+                "colors": {
+                    "customizationBackground1": customization.customization_background_1,
+                    "customizationBackground2": customization.customization_background_2,
+                    "customizationForeground1": customization.customization_foreground_1,
+                }
+            },
+            dashboardPanel={
+                "logo": {
+                    "image": customization.logo_image,
+                    "caption": customization.logo_caption,
+                    "background": customization.logo_background,
+                },
+                "body": {
+                    "mainText": customization.body_main_text,
+                    "subText": customization.body_sub_text,
+                    "action": {
+                        "text": customization.body_action_text,
+                        "url": customization.body_action_url,
+                    },
+                },
+            },
             scorer={
                 "weights": weights,
             },
-        ).dict(by_alias=True)
+        )
 
     except Customization.DoesNotExist:
         raise APIException("Customization not found", status.HTTP_404_NOT_FOUND)

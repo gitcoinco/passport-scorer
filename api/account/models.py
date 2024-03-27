@@ -371,16 +371,23 @@ class Customization(models.Model):
         validators=[],
     )
     scorer = models.ForeignKey(Community, on_delete=models.PROTECT)
+    use_custom_dashboard_panel = models.BooleanField(default=False)
 
     # CustomizationTheme
     customization_background_1 = RGBAHexColorField(
-        help_text="Background color 1", null=True, blank=True
+        help_text="Background color 1. RGBA hex value expected, for example `#aaff6655`",
+        null=True,
+        blank=True,
     )
     customization_background_2 = RGBAHexColorField(
-        help_text="Background color 2", null=True, blank=True
+        help_text="Background color 2. RGBA hex value expected, for example `#aaff6655`",
+        null=True,
+        blank=True,
     )
     customization_foreground_1 = RGBAHexColorField(
-        help_text="Foreground color", null=True, blank=True
+        help_text="Foreground color. RGBA hex value expected, for example `#aaff6655`",
+        null=True,
+        blank=True,
     )
 
     # Logo
