@@ -6,13 +6,14 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Optional, Type
 
+from django.utils.deconstruct import deconstructible
 import api_logging as logging
 from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
 from rest_framework_api_key.models import AbstractAPIKey
 from scorer_weighted.models import BinaryWeightedScorer, Scorer, WeightedScorer
-
+from django.core.exceptions import ValidationError
 from .deduplication import Rules
 
 log = logging.getLogger(__name__)
@@ -23,6 +24,32 @@ tz = timezone.utc
 
 HEXA_RE = re.compile("^0x[A-Fa-f0-9]+$")
 HEXA_VALID = RegexValidator(HEXA_RE, "Enter a valid hex string ", "invalid")
+RGBA_HEXA_RE = re.compile("^0x[A-Fa-f0-9]{8}$")
+RGBA_HEXA_VALID = RegexValidator(
+    RGBA_HEXA_RE, "Enter a valid RGBA color as hex string ", "invalid"
+)
+
+
+@deconstructible
+class ForbiddenList:
+    forbidden_values = []
+    message = "Forbidden vaue has been used"
+    code = "invalid"
+
+    def __init__(self, forbidden_values=None, code=None, message=None):
+        if forbidden_values is not None:
+            self.forbidden_values = forbidden_values
+        if code is not None:
+            self.code = code
+        if message is not None:
+            self.message = message
+
+    def __call__(self, value):
+        """
+        Validate that the input is not amongst the forbidden vaules.
+        """
+        if value in self.forbidden_values:
+            raise ValidationError(self.message, code=self.code, params={"value": value})
 
 
 class HexStringField(models.CharField):
@@ -35,6 +62,26 @@ class HexStringField(models.CharField):
 
     def get_prep_value(self, value):
         return str(value).lower()
+
+
+class RGBAHexColorField(models.CharField):
+    def __init__(self, *args, **kwargs):
+        if "validators" not in kwargs:
+            kwargs["validators"] = []
+
+        if "max_length" not in kwargs:
+            kwargs["max_length"] = 9
+
+        kwargs["validators"] += [RGBA_HEXA_VALID]
+        super(RGBAHexColorField, self).__init__(*args, **kwargs)
+
+    def get_prep_value(self, value):
+        return str(value).lower()
+
+
+class ReactNodeField(models.TextField):
+    def __init__(self, *args, **kwargs):
+        super(ReactNodeField, self).__init__(*args, **kwargs)
 
 
 class EthAddressField(models.CharField):
@@ -313,6 +360,49 @@ class Community(models.Model):
 
 
 class Customization(models.Model):
-    path = models.CharField(max_length=100)
+    class CustomizationLogoBackgroundType(models.TextChoices):
+        DOTS = "DOTS"
+        NONE = "NONE"
+
+    path = models.CharField(
+        max_length=100,
+        db_index=True,
+        null=False,
+        blank=False,
+        unique=True,
+        validators=[],
+    )
     scorer = models.ForeignKey(Community, on_delete=models.PROTECT)
-    text = models.TextField()
+
+    # CustomizationTheme
+    customization_background_1 = RGBAHexColorField(
+        help_text="Background color 1", null=True, blank=True
+    )
+    customization_background_2 = RGBAHexColorField(
+        help_text="Background color 2", null=True, blank=True
+    )
+    customization_foreground_1 = RGBAHexColorField(
+        help_text="Foreground color", null=True, blank=True
+    )
+
+    # Logo
+    logo_image = ReactNodeField(help_text="The logo in SVG format")
+    logo_caption = ReactNodeField(help_text="The caption as text or react node object")
+    logo_background = models.CharField(
+        max_length=10,
+        choices=CustomizationLogoBackgroundType.choices,
+        blank=True,
+        null=True,
+    )
+
+    # Body
+    body_main_text = ReactNodeField(help_text="The body main text")
+    body_sub_text = ReactNodeField(help_text="The body sub text")
+    body_action_text = models.TextField(
+        blank=True,
+        null=True,
+    )
+    body_action_url = models.URLField(
+        blank=True,
+        null=True,
+    )

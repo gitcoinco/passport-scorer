@@ -142,28 +142,53 @@ class APIKeyPermissionsAdmin(ScorerModelAdmin):
     list_display = ("id", "submit_passports", "read_scores", "create_scorers")
 
 
+svg_widget = AceWidget(
+    mode="svg",
+    theme=None,  # try for example "twilight"
+    wordwrap=False,
+    width="500px",
+    height="300px",
+    minlines=None,
+    maxlines=None,
+    showprintmargin=True,
+    showinvisibles=False,
+    usesofttabs=True,
+    tabsize=None,
+    fontsize=None,
+    toolbar=True,
+    readonly=False,
+    showgutter=True,  # To hide/show line numbers
+    behaviours=True,  # To disable auto-append of quote when quotes are entered
+)
+xml_widget = AceWidget(
+    mode="xml",
+    theme=None,  # try for example "twilight"
+    wordwrap=False,
+    width="500px",
+    height="300px",
+    minlines=None,
+    maxlines=None,
+    showprintmargin=True,
+    showinvisibles=False,
+    usesofttabs=True,
+    tabsize=None,
+    fontsize=None,
+    toolbar=True,
+    readonly=False,
+    showgutter=True,  # To hide/show line numbers
+    behaviours=True,  # To disable auto-append of quote when quotes are entered
+)
+
+
 class CustomizationForm(forms.ModelForm):
     class Meta:
         model = Customization
         widgets = {
-            "text": AceWidget(
-                mode="svg",
-                theme=None,  # try for example "twilight"
-                wordwrap=False,
-                width="500px",
-                height="300px",
-                minlines=None,
-                maxlines=None,
-                showprintmargin=True,
-                showinvisibles=False,
-                usesofttabs=True,
-                tabsize=None,
-                fontsize=None,
-                toolbar=True,
-                readonly=False,
-                showgutter=True,  # To hide/show line numbers
-                behaviours=True,  # To disable auto-append of quote when quotes are entered
-            )
+            "logo_image": svg_widget,
+            "logo_background": xml_widget,
+            "logo_caption": xml_widget,
+            "body_main_text": xml_widget,
+            "body_sub_text": xml_widget,
         }
         fields = "__all__"
 
@@ -172,4 +197,43 @@ class CustomizationForm(forms.ModelForm):
 class CustomizationAdmin(ScorerModelAdmin):
     form = CustomizationForm
 
-    list_display = ("id", "text")
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": ["path", "scorer"],
+            },
+        ),
+        (
+            "Colors",
+            {
+                "classes": ["collapse"],
+                "fields": [
+                    "customization_background_1",
+                    "customization_background_2",
+                    "customization_foreground_1",
+                ],
+            },
+        ),
+        (
+            "Logo",
+            {
+                "classes": ["collapse"],
+                "fields": ["logo_background", "logo_image", "logo_caption"],
+            },
+        ),
+        (
+            "Body",
+            {
+                "classes": ["collapse"],
+                "fields": [
+                    "body_action_text",
+                    "body_action_url",
+                    "body_main_text",
+                    "body_sub_text",
+                ],
+            },
+        ),
+    ]
+
+    list_display = ["id", "path"]
