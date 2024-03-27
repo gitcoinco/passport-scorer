@@ -44,6 +44,7 @@ faker = "*"
 python-jose = "*"
 uvarint = "*"
 django-ace = "*"
+pyhumps = "*"
 
 [dev-packages]
 black = "*"

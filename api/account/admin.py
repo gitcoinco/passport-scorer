@@ -1,14 +1,16 @@
 import boto3
+from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django_ace import AceWidget
 from rest_framework_api_key.admin import APIKeyAdmin
 from scorer.scorer_admin import ScorerModelAdmin
 from scorer_weighted.models import Scorer
 
-from .models import Account, AccountAPIKey, Community
+from .models import Account, AccountAPIKey, Community, Customization
 
 
 @admin.register(Account)
@@ -138,3 +140,100 @@ class AccountAPIKeyAdmin(APIKeyAdmin):
 
 class APIKeyPermissionsAdmin(ScorerModelAdmin):
     list_display = ("id", "submit_passports", "read_scores", "create_scorers")
+
+
+svg_widget = AceWidget(
+    mode="svg",
+    theme=None,  # try for example "twilight"
+    wordwrap=False,
+    width="500px",
+    height="300px",
+    minlines=None,
+    maxlines=None,
+    showprintmargin=True,
+    showinvisibles=False,
+    usesofttabs=True,
+    tabsize=None,
+    fontsize=None,
+    toolbar=True,
+    readonly=False,
+    showgutter=True,  # To hide/show line numbers
+    behaviours=True,  # To disable auto-append of quote when quotes are entered
+)
+xml_widget = AceWidget(
+    mode="xml",
+    theme=None,  # try for example "twilight"
+    wordwrap=False,
+    width="500px",
+    height="300px",
+    minlines=None,
+    maxlines=None,
+    showprintmargin=True,
+    showinvisibles=False,
+    usesofttabs=True,
+    tabsize=None,
+    fontsize=None,
+    toolbar=True,
+    readonly=False,
+    showgutter=True,  # To hide/show line numbers
+    behaviours=True,  # To disable auto-append of quote when quotes are entered
+)
+
+
+class CustomizationForm(forms.ModelForm):
+    class Meta:
+        model = Customization
+        widgets = {
+            "logo_image": svg_widget,
+            # "logo_background": xml_widget,
+            "logo_caption": xml_widget,
+            "body_main_text": xml_widget,
+            "body_sub_text": xml_widget,
+        }
+        fields = "__all__"
+
+
+@admin.register(Customization)
+class CustomizationAdmin(ScorerModelAdmin):
+    form = CustomizationForm
+
+    fieldsets = [
+        (
+            None,
+            {
+                "fields": ["path", "scorer", "use_custom_dashboard_panel"],
+            },
+        ),
+        (
+            "Colors",
+            {
+                "classes": ["collapse"],
+                "fields": [
+                    "customization_background_1",
+                    "customization_background_2",
+                    "customization_foreground_1",
+                ],
+            },
+        ),
+        (
+            "Logo",
+            {
+                "classes": ["collapse"],
+                "fields": ["logo_background", "logo_image", "logo_caption"],
+            },
+        ),
+        (
+            "Body",
+            {
+                "classes": ["collapse"],
+                "fields": [
+                    "body_action_text",
+                    "body_action_url",
+                    "body_main_text",
+                    "body_sub_text",
+                ],
+            },
+        ),
+    ]
+
+    list_display = ["id", "path"]
