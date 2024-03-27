@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional, cast
 
 import api_logging as logging
-from account.models import Account, AccountAPIKey, Community, Nonce
+from account.models import Account, AccountAPIKey, Community, Nonce, Customization
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
@@ -15,11 +15,15 @@ from ninja_extra import NinjaExtraAPI, status
 from ninja_extra.exceptions import APIException
 from ninja_jwt.authentication import JWTAuth
 from ninja_jwt.schema import RefreshToken
-from ninja_schema import Schema
-from scorer_weighted.models import BinaryWeightedScorer, WeightedScorer
+from scorer_weighted.models import (
+    BinaryWeightedScorer,
+    WeightedScorer,
+    get_default_weights,
+)
 from siwe import SiweMessage, siwe
 
 from .deduplication import Rules
+from .schema import CustomizationSchema
 
 log = logging.getLogger(__name__)
 
@@ -368,7 +372,7 @@ def create_community_for_account(
 def create_community(request, payload: CommunitiesPayload):
     try:
         account = request.user.account
-        if payload == None:
+        if payload is None:
             raise CommunityHasNoBodyException()
 
         if len(payload.description) == 0:
@@ -579,3 +583,37 @@ def update_community_scorers(request, community_id, payload: ScorerId):
     except Community.DoesNotExist:
         raise UnauthorizedException()
     return {"ok": True}
+
+
+@api.get("/customization/{dashboard_path}/", auth=None)
+def get_account_customization(request, dashboard_path: str):
+    try:
+        customization = Customization.objects.get(path=dashboard_path)
+        scorer = customization.scorer.scorer
+
+        weights = get_default_weights
+
+        if scorer and getattr(scorer, "weightedscorer", None):
+            weights = scorer.weightedscorer.weights
+        elif scorer and getattr(scorer, "binaryweightedscorer", None):
+            weights = scorer.binaryweightedscorer.weights
+
+        return CustomizationSchema(
+            path=customization.path,
+            customization_background_1=customization.customization_background_1,
+            customization_background_2=customization.customization_background_2,
+            customization_foreground_1=customization.customization_foreground_1,
+            logo_image=customization.logo_image,
+            logo_caption=customization.logo_caption,
+            logo_background=customization.logo_background,
+            body_main_text=customization.body_main_text,
+            body_sub_text=customization.body_sub_text,
+            body_action_text=customization.body_action_text,
+            body_action_url=customization.body_action_url,
+            scorer={
+                "weights": weights,
+            },
+        ).dict(by_alias=True)
+
+    except Customization.DoesNotExist:
+        raise APIException("Customization not found", status.HTTP_404_NOT_FOUND)

@@ -185,7 +185,7 @@ class CustomizationForm(forms.ModelForm):
         model = Customization
         widgets = {
             "logo_image": svg_widget,
-            "logo_background": xml_widget,
+            # "logo_background": xml_widget,
             "logo_caption": xml_widget,
             "body_main_text": xml_widget,
             "body_sub_text": xml_widget,

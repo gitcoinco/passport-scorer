@@ -24,7 +24,7 @@ tz = timezone.utc
 
 HEXA_RE = re.compile("^0x[A-Fa-f0-9]+$")
 HEXA_VALID = RegexValidator(HEXA_RE, "Enter a valid hex string ", "invalid")
-RGBA_HEXA_RE = re.compile("^0x[A-Fa-f0-9]{8}$")
+RGBA_HEXA_RE = re.compile("^#[A-Fa-f0-9]{8}$")
 RGBA_HEXA_VALID = RegexValidator(
     RGBA_HEXA_RE, "Enter a valid RGBA color as hex string ", "invalid"
 )
@@ -55,9 +55,8 @@ class ForbiddenList:
 class HexStringField(models.CharField):
     def __init__(self, *args, **kwargs):
         if "validators" not in kwargs:
-            kwargs["validators"] = []
+            kwargs["validators"] = [HEXA_VALID]
 
-        kwargs["validators"] += [HEXA_VALID]
         super(HexStringField, self).__init__(*args, **kwargs)
 
     def get_prep_value(self, value):
@@ -67,12 +66,11 @@ class HexStringField(models.CharField):
 class RGBAHexColorField(models.CharField):
     def __init__(self, *args, **kwargs):
         if "validators" not in kwargs:
-            kwargs["validators"] = []
+            kwargs["validators"] = [RGBA_HEXA_VALID]
 
         if "max_length" not in kwargs:
             kwargs["max_length"] = 9
 
-        kwargs["validators"] += [RGBA_HEXA_VALID]
         super(RGBAHexColorField, self).__init__(*args, **kwargs)
 
     def get_prep_value(self, value):
@@ -386,8 +384,12 @@ class Customization(models.Model):
     )
 
     # Logo
-    logo_image = ReactNodeField(help_text="The logo in SVG format")
-    logo_caption = ReactNodeField(help_text="The caption as text or react node object")
+    logo_image = ReactNodeField(
+        help_text="The logo in SVG format", null=True, blank=True
+    )
+    logo_caption = ReactNodeField(
+        help_text="The caption as text or react node object", null=True, blank=True
+    )
     logo_background = models.CharField(
         max_length=10,
         choices=CustomizationLogoBackgroundType.choices,
@@ -396,8 +398,10 @@ class Customization(models.Model):
     )
 
     # Body
-    body_main_text = ReactNodeField(help_text="The body main text")
-    body_sub_text = ReactNodeField(help_text="The body sub text")
+    body_main_text = ReactNodeField(
+        help_text="The body main text", null=True, blank=True
+    )
+    body_sub_text = ReactNodeField(help_text="The body sub text", null=True, blank=True)
     body_action_text = models.TextField(
         blank=True,
         null=True,
