@@ -13,5 +13,8 @@ from ceramic_cache.api.v1 import handle_get_ui_score
 @with_request_exception_handling
 def handler(event, context):
     address = authenticate_and_get_address(event)
+    alternate_scorer_id = event.get("queryStringParameters", {}).get(
+        "alternate_scorer_id", None
+    )
 
-    return format_response(handle_get_ui_score(address))
+    return format_response(handle_get_ui_score(address, alternate_scorer_id))

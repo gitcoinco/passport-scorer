@@ -408,12 +408,16 @@ def handle_get_stamps(address):
     response=DetailedScoreResponse,
     auth=JWTDidAuth(),
 )
-def get_score(request, address: str) -> DetailedScoreResponse:
-    return handle_get_ui_score(address)
+def get_score(
+    request, address: str, alternate_scorer_id: Optional[int] = None
+) -> DetailedScoreResponse:
+    return handle_get_ui_score(address, alternate_scorer_id)
 
 
-def handle_get_ui_score(address: str) -> DetailedScoreResponse:
-    scorer_id = settings.CERAMIC_CACHE_SCORER_ID
+def handle_get_ui_score(
+    address: str, alternate_scorer_id: Optional[int]
+) -> DetailedScoreResponse:
+    scorer_id = alternate_scorer_id or settings.CERAMIC_CACHE_SCORER_ID
     account = get_object_or_404(Account, community__id=scorer_id)
     return handle_get_score(address, scorer_id, account)
 
