@@ -67,7 +67,7 @@ const redashMailPassword = pulumi.secret(
 const pagerDutyIntegrationEndpoint = `${process.env["PAGERDUTY_INTEGRATION_ENDPOINT"]}`;
 
 const coreInfraStack = new pulumi.StackReference(`gitcoin/core-infra/${stack}`);
-const RDS_SECRET_ARN = coreInfraStack.getOutput("rdsSecretArn");
+const RDS_SECRET_ARN = coreInfraStack.getOutput("AURORA_rdsSecretArn"); // rdsSecretArn // AURORA_rdsSecretArn
 
 const vpcID = coreInfraStack.getOutput("vpcId");
 const vpcPrivateSubnetIds = coreInfraStack.getOutput("privateSubnetIds");
@@ -82,7 +82,7 @@ const redisCacheOpsConnectionUrl =
 
 const CERAMIC_CACHE_SCORER_ID_CONFG = Object({
   review: 1,
-  staging: 14,
+  staging: 1, //14, //1, -> for Aurora
   production: 335,
 });
 
@@ -202,13 +202,15 @@ const privateSubnetSecurityGroup = new aws.ec2.SecurityGroup(
   }
 );
 
-const scorerDbProxyEndpoint = coreInfraStack.getOutput("rdsProxyEndpoint");
+const scorerDbProxyEndpoint = coreInfraStack.getOutput(
+  "AURORA_rdsProxyEndpoint"
+); //rdsProxyEndpoint // AURORA_rdsProxyEndpoint
 const scorerDbProxyEndpointConn = coreInfraStack.getOutput(
-  "rdsProxyConnectionUrl"
-);
+  "AURORA_rdsProxyConnectionUrl"
+); // rdsProxyConnectionUrl // AURORA_rdsProxyConnectionUrl
 const readreplica0ConnectionUrl = coreInfraStack.getOutput(
-  "readreplica0ConnectionUrl"
-);
+  "AURORA_readreplica0ConnectionUrl" // readreplica0ConnectionUrl // AURORA_readreplica0ConnectionUrl
+); 
 
 //////////////////////////////////////////////////////////////
 // Set up ALB and ECS cluster
@@ -815,6 +817,9 @@ const redashDb = new aws.rds.Instance(
     vpcSecurityGroupIds: [redashDbSecgrp.id],
     backupRetentionPeriod: 5,
     performanceInsightsEnabled: true,
+    tags: {
+      Name: "redash-db-0",
+    }
   },
   { protect: true }
 );
