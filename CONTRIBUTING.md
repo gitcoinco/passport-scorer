@@ -41,7 +41,7 @@ Before submitting a PR, please make sure that all tests, linting and formatting
 rules are passing.
 
 We squash all PRs by default. You can request your PR commits to not be squashed
-if the're well named and organized, and it would make sense to preserve their
+if they're well named and organized, and it would make sense to preserve their
 context.
 
 To keep the repository clean, we may mark PRs as stale if there has been no

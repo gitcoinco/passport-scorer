@@ -26,7 +26,7 @@ npm run dev
 
 Open `http://localhost:3000` with your browser to see the result.
 
-You will need a web3 wallet, ideally one that already owns a Gitcoin Passport with several stamps.Otherwise, you won't be able to do very much with this app!
+You will need a web3 wallet, ideally one that already owns a Gitcoin Passport with several stamps. Otherwise, you won't be able to do very much with this app!
 
 ## Learn More
 

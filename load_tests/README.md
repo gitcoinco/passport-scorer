@@ -26,7 +26,7 @@
 
 - `cd generate_test_auth_tokens`
 - run `npm install`
-- make sure to set the environent variables:
+- make sure to set the environment variables:
 
 ```bash
 export MNEMONIC='chief loud snack trend chief net field husband vote message decide replace'
@@ -54,7 +54,7 @@ or
 To output results / stats in a CSV file, run k6 with the `--out` like:
 `k6 run -e SCORER_API_KEY='iE7QwgX9.rx9XIXdkPwZUYAHditFMgFVKvDp428OH' -e SCORER_ID=24 --vus 10 --duration 120s --out csv=k6_metrics.csv test_scripts/scorer_api_script.js`
 
-You can then use the `stats.ipynb` to analyse the results frm the `k6_metrics.csv` (after the run).
+You can then use the `stats.ipynb` to analyse the results from the `k6_metrics.csv` (after the run).
 
 ## In cloud
 
