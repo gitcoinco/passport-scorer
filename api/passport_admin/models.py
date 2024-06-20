@@ -24,7 +24,7 @@ class PassportBanner(models.Model):
         max_length=50,
         choices=APPLICATION_CHOICES,
         default="passport",
-        # db_index=True,
+        db_index=True,
     )
 
 
