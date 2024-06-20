@@ -180,24 +180,32 @@ def dismiss_notification(request, notification_id: str, payload: DismissPayload)
     try:
         address = get_address(request.auth.did)
         notification = Notification.objects.get(notification_id=notification_id)
+
+        if payload.dismissal_type not in ["read", "delete"]:
+            return {
+                "status": "Failed! Bad dismissal type.",
+            }
+
+        notification_status, created = NotificationStatus.objects.get_or_create(
+            eth_address=address, notification=notification
+        )
+
         if payload.dismissal_type == "read":
-            NotificationStatus.objects.get_or_create(
-                eth_address=address, notification=notification, is_read=True
-            )
+            if not notification_status.is_read:
+                notification_status.is_read = True
+                notification_status.save()
             return {
                 "status": "success",
             }
-        # TODO:@Larisa update the field in case the Status already exists
+
         if payload.dismissal_type == "delete":
-            NotificationStatus.objects.get_or_create(
-                eth_address=address, notification=notification, is_deleted=True
-            )
+            if not notification_status.is_deleted:
+                notification_status.is_deleted = True
+                notification_status.save()
             return {
                 "status": "success",
             }
-        return {
-            "status": "Failed! Bad dismissal type.",
-        }
+
     except Notification.DoesNotExist:
         return {
             "status": "failed",
