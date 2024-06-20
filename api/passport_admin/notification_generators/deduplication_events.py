@@ -22,9 +22,7 @@ def generate_deduplication_notifications(address):
                 {
                     "action": event.action,
                     "address": event.address,
-                    "community": event.community,
                     "data": event.data,
-                    "created_at": event.created_at,
                     "id": event.id,
                 }
             )
@@ -33,15 +31,16 @@ def generate_deduplication_notifications(address):
             notification_exists = Notification.objects.filter(
                 notification_id=notification_id
             ).exists()
-
+            print(f"notification_exists: {notification_exists}")
             stamp_name = event.data.get("provider", "<StampName>")
             if not notification_exists:
                 Notification.objects.create(
                     notification_id=notification_id,
                     type="deduplication",
                     is_active=True,
-                    content=f"You have claimed the same '{stamp_name}' stamp in two Passports. We only count your stamp once. This duplicate is in your wallet {address}. Learn more about deduplication <a href='https://github.com/orgs/gitcoinco/projects/6/views/link'>here</a>",
+                    content=f"You have claimed the same '{stamp_name}' stamp in two Passports. We only count your stamp once. This duplicate is in your wallet {address}. Learn more about deduplication",
                     link="https://github.com/orgs/gitcoinco/projects/6/views/link",
+                    link_text="here",
                     created_at=timezone.now().date(),
                     eth_address=address,
                 )

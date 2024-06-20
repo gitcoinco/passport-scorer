@@ -128,7 +128,8 @@ def get_notifications(request, payload: NotificationPayload):
         ]  # [:1] is used to limit the subquery to 1 result. There should be only 1 NotificationStatus per Notification
 
         custom_notifications = Notification.objects.filter(
-            Q(is_active=True, eth_address=address, expires_at__gte=current_date)
+            Q(is_active=True, eth_address=address)
+            & (Q(expires_at__gte=current_date) | Q(expires_at__isnull=True))
             & (
                 Q(notificationstatus__is_deleted=False)
                 | Q(notificationstatus__isnull=True)
@@ -138,7 +139,8 @@ def get_notifications(request, payload: NotificationPayload):
         )
 
         general_notifications = Notification.objects.filter(
-            Q(is_active=True, eth_address=None, expires_at__gte=current_date)
+            Q(is_active=True, eth_address=None)
+            & (Q(expires_at__gte=current_date) | Q(expires_at__isnull=True))
             & (
                 Q(notificationstatus__is_deleted=False)
                 | Q(notificationstatus__isnull=True)

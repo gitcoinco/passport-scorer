@@ -69,7 +69,7 @@ class Notification(models.Model):
     link_text = models.CharField(max_length=255, null=True)
     content = models.TextField()
     created_at = models.DateField(auto_now_add=True)
-    expires_at = models.DateField()
+    expires_at = models.DateField(null=True)
     eth_address = EthAddressField(
         null=True
     )  # account/ eth address for which the notification is created. If null then it is a global notification wgich will be shown to all users.

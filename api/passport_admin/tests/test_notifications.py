@@ -1,8 +1,12 @@
 import pytest
+import dag_cbor
+import hashlib
 from django.test import Client
 from django.utils import timezone
 from datetime import timedelta
 from ceramic_cache.api.v1 import DbCacheToken
+from registry.models import Event
+from collections import Counter
 from passport_admin.models import Notification, NotificationStatus
 
 pytestmark = pytest.mark.django_db
@@ -155,12 +159,31 @@ def generic_notifications(current_date, sample_address):
     return ret
 
 
+@pytest.fixture
+def deduplication_event(sample_address):
+    event = Event.objects.create(
+        action=Event.Action.LIFO_DEDUPLICATION,
+        address=sample_address,
+        data={
+            "hash": "some_hash",
+            "provider": "some_provider",
+            "community_id": "some_community_id",
+        },
+    )
+    return event
+
+
 class TestNotifications:
     # def test_get_address(self, sample_address, sample_token):
     #     assert get_address(sample_token) == sample_address
 
     def test_get_active_notifications_for_address(
-        self, sample_token, custom_notifications, generic_notifications
+        self,
+        sample_token,
+        sample_address,
+        custom_notifications,
+        generic_notifications,
+        deduplication_event,
     ):
         response = client.post(
             "/passport-admin/notifications",
@@ -168,6 +191,24 @@ class TestNotifications:
             HTTP_AUTHORIZATION=f"Bearer {sample_token}",
             content_type="application/json",
         )
+
+        expected_deduplication_notification = {
+            "notification_id": hashlib.sha256(
+                dag_cbor.encode(
+                    {
+                        "action": deduplication_event.action,
+                        "address": deduplication_event.address,
+                        "data": deduplication_event.data,
+                        "id": deduplication_event.id,
+                    }
+                )
+            ).hexdigest(),
+            "type": "deduplication",
+            "link": "https://github.com/orgs/gitcoinco/projects/6/views/link",
+            "link_text": "here",
+            "content": f"You have claimed the same `{deduplication_event.data['provider']}` stamp in two Passports. We only count your stamp once. This duplicate is in your wallet {sample_address}. Learn more about deduplication",
+            "is_read": False,
+        }
 
         expected_response = {
             "items": [
@@ -203,10 +244,14 @@ class TestNotifications:
                     "content": generic_notifications["read"].content,
                     "is_read": True,
                 },
+                expected_deduplication_notification,
             ]
         }
 
-        assert response.json() == expected_response
+        res = response.json()
+        assert Counter(map(frozenset, res["items"])) == Counter(
+            map(frozenset, expected_response["items"])
+        )
 
     def test_read_notification(
         self, sample_token, sample_address, custom_notifications
