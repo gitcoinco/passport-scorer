@@ -7,6 +7,7 @@ from datetime import timedelta
 from ceramic_cache.api.v1 import DbCacheToken
 from registry.models import Event
 from collections import Counter
+from ceramic_cache.models import CeramicCache
 from passport_admin.models import Notification, NotificationStatus
 
 pytestmark = pytest.mark.django_db
@@ -173,6 +174,31 @@ def deduplication_event(sample_address):
     return event
 
 
+@pytest.fixture
+def expired_stamp(sample_address):
+    cc_expired = CeramicCache.objects.create(
+        address=sample_address,
+        provider="some_provider",
+        created_at=timezone.now() - timedelta(days=3),
+        stamp={"credentialSubject": {"hash": "some_hash", "id": "some_id"}},
+        expiration_date=timezone.now() + timedelta(days=30),
+        issuance_date=timezone.now() - timedelta(days=3),
+    )
+
+    cc_deleted = CeramicCache.objects.create(
+        address=sample_address,
+        provider="some_provider",
+        deleted_at=timezone.now(),
+        created_at=timezone.now() - timedelta(days=3),
+        stamp={"credentialSubject": {"hash": "some_hash", "id": "some_id"}},
+        expiration_date=timezone.now() + timedelta(days=30),
+        issuance_date=timezone.now() - timedelta(days=3),
+    )
+
+    return cc_expired
+
+
+# TODO: test when a notification already exists
 class TestNotifications:
     # def test_get_address(self, sample_address, sample_token):
     #     assert get_address(sample_token) == sample_address
@@ -184,6 +210,7 @@ class TestNotifications:
         custom_notifications,
         generic_notifications,
         deduplication_event,
+        expired_stamp,
     ):
         response = client.post(
             "/passport-admin/notifications",
@@ -207,6 +234,27 @@ class TestNotifications:
             "link": "https://github.com/orgs/gitcoinco/projects/6/views/link",
             "link_text": "here",
             "content": f"You have claimed the same `{deduplication_event.data['provider']}` stamp in two Passports. We only count your stamp once. This duplicate is in your wallet {sample_address}. Learn more about deduplication",
+            "is_read": False,
+        }
+
+        expected_expired_stamp_notification = {
+            "notification_id": hashlib.sha256(
+                dag_cbor.encode(
+                    {
+                        "cc_id": expired_stamp.id,
+                        "cc_provider": expired_stamp.provider,
+                        "cc_stamp_hash": expired_stamp.stamp["credentialSubject"][
+                            "hash"
+                        ],
+                        "cc_stamp_id": expired_stamp.stamp["credentialSubject"]["id"],
+                        "address": sample_address,
+                    }
+                )
+            ).hexdigest(),
+            "type": "stamp_expiry",
+            "link": None,
+            "link_text": None,
+            "content": f"Your {expired_stamp.provider} stamp has expired. Please reverify to keep your Passport up to date.",
             "is_read": False,
         }
 
@@ -245,9 +293,64 @@ class TestNotifications:
                     "is_read": True,
                 },
                 expected_deduplication_notification,
+                expected_expired_stamp_notification,
             ]
         }
 
+        res = response.json()
+        assert Counter(map(frozenset, res["items"])) == Counter(
+            map(frozenset, expected_response["items"])
+        )
+
+    def test_expired_chain(self, sample_token, sample_address):
+        response = client.post(
+            "/passport-admin/notifications",
+            {
+                "expired_chain_ids": [
+                    {"id": "chain1", "name": "Chain 1"},
+                    {"id": "chain2", "name": "Chain 2"},
+                ]
+            },
+            HTTP_AUTHORIZATION=f"Bearer {sample_token}",
+            content_type="application/json",
+        )
+
+        expected_response = {
+            "items": [
+                {
+                    "notification_id": hashlib.sha256(
+                        dag_cbor.encode(
+                            {
+                                "chain_id": "chain1",
+                                "chain_name": "Chain 1",
+                                "address": sample_address,
+                            }
+                        )
+                    ).hexdigest(),
+                    "type": "on_chain_expiry",
+                    "link": None,
+                    "link_text": None,
+                    "content": "Your on-chain Passport on Chain 1 has expired. Update now to maintain your active status.",
+                    "is_read": False,
+                },
+                {
+                    "notification_id": hashlib.sha256(
+                        dag_cbor.encode(
+                            {
+                                "chain_id": "chain2",
+                                "chain_name": "Chain 2",
+                                "address": sample_address,
+                            }
+                        )
+                    ).hexdigest(),
+                    "type": "on_chain_expiry",
+                    "link": None,
+                    "link_text": None,
+                    "content": "Your on-chain Passport on Chain 2 has expired. Update now to maintain your active status.",
+                    "is_read": False,
+                },
+            ]
+        }
         res = response.json()
         assert Counter(map(frozenset, res["items"])) == Counter(
             map(frozenset, expected_response["items"])
