@@ -13,7 +13,7 @@ def generate_stamp_expired_notifications(address):
     current_date = timezone.now().date()
 
     ceramic_cache = CeramicCache.objects.filter(
-        address=address, deleted_at__isnull=True, expiration_date__gt=current_date
+        address=address, deleted_at__isnull=True, expiration_date__lt=current_date
     )
 
     for cc in ceramic_cache:
@@ -38,4 +38,5 @@ def generate_stamp_expired_notifications(address):
                 type="stamp_expiry",
                 is_active=True,
                 content=f"Your {cc.provider} stamp has expired. Please reverify to keep your Passport up to date.",
+                link=cc.provider,
             )
