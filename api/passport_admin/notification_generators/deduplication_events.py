@@ -43,6 +43,4 @@ def generate_deduplication_notifications(address):
                     link_text="here",
                     created_at=timezone.now().date(),
                     eth_address=address,
-                    # added to fix 500 worth a double check
-                    expires_at=timezone.now().date(),
                 )
