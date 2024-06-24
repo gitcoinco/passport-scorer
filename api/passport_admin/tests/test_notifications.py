@@ -179,13 +179,13 @@ def expired_stamp(sample_address):
     cc_expired = CeramicCache.objects.create(
         address=sample_address,
         provider="some_provider",
-        created_at=timezone.now() - timedelta(days=3),
+        created_at=timezone.now() - timedelta(days=30),
         stamp={"credentialSubject": {"hash": "some_hash", "id": "some_id"}},
-        expiration_date=timezone.now() + timedelta(days=30),
+        expiration_date=timezone.now() - timedelta(days=3),
         issuance_date=timezone.now() - timedelta(days=3),
     )
 
-    cc_deleted = CeramicCache.objects.create(
+    CeramicCache.objects.create(
         address=sample_address,
         provider="some_provider",
         deleted_at=timezone.now(),
@@ -233,7 +233,7 @@ class TestNotifications:
             "type": "deduplication",
             "link": "https://github.com/orgs/gitcoinco/projects/6/views/link",
             "link_text": "here",
-            "content": f"You have claimed the same `{deduplication_event.data['provider']}` stamp in two Passports. We only count your stamp once. This duplicate is in your wallet {sample_address}. Learn more about deduplication",
+            "content": f"You have claimed the same '{deduplication_event.data['provider']}' stamp in two Passports. We only count your stamp once. This duplicate is in your wallet {sample_address}. Learn more about deduplication",
             "is_read": False,
         }
 
@@ -252,14 +252,14 @@ class TestNotifications:
                 )
             ).hexdigest(),
             "type": "stamp_expiry",
-            "link": None,
+            "link": "some_provider",
             "link_text": None,
             "content": f"Your {expired_stamp.provider} stamp has expired. Please reverify to keep your Passport up to date.",
             "is_read": False,
         }
 
-        expected_response = {
-            "items": [
+        expected_response_items = sorted(
+            [
                 {
                     "notification_id": custom_notifications["active"].notification_id,
                     "type": custom_notifications["active"].type,
@@ -294,13 +294,15 @@ class TestNotifications:
                 },
                 expected_deduplication_notification,
                 expected_expired_stamp_notification,
-            ]
-        }
+            ],
+            key=lambda x: x["notification_id"],
+        )
 
         res = response.json()
-        assert Counter(map(frozenset, res["items"])) == Counter(
-            map(frozenset, expected_response["items"])
-        )
+
+        received_items = sorted(res["items"], key=lambda x: x["notification_id"])
+
+        assert received_items == expected_response_items
 
     def test_expired_chain(self, sample_token, sample_address):
         response = client.post(
