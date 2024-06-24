@@ -6,7 +6,6 @@ from django.utils import timezone
 from datetime import timedelta
 from ceramic_cache.api.v1 import DbCacheToken
 from registry.models import Event
-from collections import Counter
 from ceramic_cache.models import CeramicCache
 from passport_admin.models import Notification, NotificationStatus
 
@@ -317,8 +316,8 @@ class TestNotifications:
             content_type="application/json",
         )
 
-        expected_response = {
-            "items": [
+        expected_response = sorted(
+            [
                 {
                     "notification_id": hashlib.sha256(
                         dag_cbor.encode(
@@ -351,12 +350,13 @@ class TestNotifications:
                     "content": "Your on-chain Passport on Chain 2 has expired. Update now to maintain your active status.",
                     "is_read": False,
                 },
-            ]
-        }
-        res = response.json()
-        assert Counter(map(frozenset, res["items"])) == Counter(
-            map(frozenset, expected_response["items"])
+            ],
+            key=lambda x: x["notification_id"],
         )
+
+        res = response.json()
+        received_items = sorted(res["items"], key=lambda x: x["notification_id"])
+        assert expected_response == received_items
 
     def test_read_notification(
         self, sample_token, sample_address, custom_notifications
