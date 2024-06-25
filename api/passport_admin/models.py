@@ -65,13 +65,13 @@ class Notification(models.Model):
     )
     is_active = models.BooleanField(default=False)
 
-    link = models.CharField(max_length=255, null=True)
-    link_text = models.CharField(max_length=255, null=True)
+    link = models.CharField(max_length=255, null=True, blank=True)
+    link_text = models.CharField(max_length=255, null=True, blank=True)
     content = models.TextField()
     created_at = models.DateField(auto_now_add=True)
-    expires_at = models.DateField(null=True)
+    expires_at = models.DateField(null=True, blank=True)
     eth_address = EthAddressField(
-        null=True
+        null=True, blank=True
     )  # account/ eth address for which the notification is created. If null then it is a global notification wgich will be shown to all users.
 
 
@@ -81,4 +81,6 @@ class NotificationStatus(models.Model):
     is_deleted = models.BooleanField(
         default=False
     )  # is dismissed => should not longer be shown to the user
-    eth_address = EthAddressField()  # The account / eth address that dissmised the notification. Required to track the dismissed notifications / user in case of global notifications.
+    eth_address = EthAddressField(
+        db_index=True
+    )  # The account / eth address that dissmised the notification. Required to track the dismissed notifications / user in case of global notifications.
