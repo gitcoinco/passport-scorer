@@ -1,3 +1,7 @@
+"""
+This module contains the logic for generating deduplication notifications for a specific address.
+"""
+
 import dag_cbor
 import hashlib
 
@@ -8,7 +12,13 @@ from passport_admin.models import Notification
 
 def generate_deduplication_notifications(address):
     """
-    Generate deduplication notifications for a specific address
+    Generate deduplication notifications for a specific address.
+
+    Args:
+        address (str): The address for which to generate deduplication notifications.
+
+    Returns:
+        None
     """
     deduplication_events = Event.objects.filter(
         address=address, action=Event.Action.LIFO_DEDUPLICATION
@@ -31,7 +41,6 @@ def generate_deduplication_notifications(address):
             notification_exists = Notification.objects.filter(
                 notification_id=notification_id
             ).exists()
-            print(f"notification_exists: {notification_exists}")
             stamp_name = event.data.get("provider", "<StampName>")
             if not notification_exists:
                 Notification.objects.create(
