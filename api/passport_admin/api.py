@@ -127,39 +127,52 @@ def get_notifications(request, payload: NotificationPayload):
             :1
         ]  # [:1] is used to limit the subquery to 1 result. There should be only 1 NotificationStatus per Notification
 
-        custom_notifications = Notification.objects.filter(
-            Q(is_active=True, eth_address=address)
-            & (Q(expires_at__gte=current_date) | Q(expires_at__isnull=True))
-            & (
-                Q(notificationstatus__is_deleted=False)
-                | Q(notificationstatus__isnull=True)
+        custom_notifications = (
+            Notification.objects.filter(
+                Q(is_active=True, eth_address=address)
+                & (Q(expires_at__gte=current_date) | Q(expires_at__isnull=True))
+                & (
+                    Q(notificationstatus__is_deleted=False)
+                    | Q(notificationstatus__isnull=True)
+                )
             )
-        ).annotate(
-            is_read=Coalesce(Subquery(notification_status_subquery), Value(False))
+            .annotate(
+                is_read=Coalesce(Subquery(notification_status_subquery), Value(False))
+            )
+            .order_by("-created_at")
         )
 
-        general_notifications = Notification.objects.filter(
-            Q(is_active=True, eth_address=None)
-            & (Q(expires_at__gte=current_date) | Q(expires_at__isnull=True))
-            & (
-                Q(notificationstatus__is_deleted=False)
-                | Q(notificationstatus__isnull=True)
+        general_notifications = (
+            Notification.objects.filter(
+                Q(is_active=True, eth_address=None)
+                & (Q(expires_at__gte=current_date) | Q(expires_at__isnull=True))
+                & (
+                    Q(notificationstatus__is_deleted=False)
+                    | Q(notificationstatus__isnull=True)
+                )
             )
-        ).annotate(
-            is_read=Coalesce(Subquery(notification_status_subquery), Value(False))
+            .annotate(
+                is_read=Coalesce(Subquery(notification_status_subquery), Value(False))
+            )
+            .order_by("-created_at")
         )
 
-        all_notifications = [
-            NotificationSchema(
-                notification_id=n.notification_id,
-                type=n.type,
-                content=n.content,
-                link=n.link,
-                link_text=n.link_text,
-                is_read=n.is_read,
-            ).dict()
-            for n in [*custom_notifications, *general_notifications]
-        ]
+        all_notifications = sorted(
+            [
+                NotificationSchema(
+                    notification_id=n.notification_id,
+                    type=n.type,
+                    content=n.content,
+                    link=n.link,
+                    link_text=n.link_text,
+                    is_read=n.is_read,
+                ).dict()
+                for n in [*custom_notifications, *general_notifications]
+            ],
+            key=lambda x: x["created_at"],
+            reverse=True,
+        )[:20]  # Limit to the 20 newest notifications
+
         return NotificationResponse(items=all_notifications).dict()
 
     except Notification.DoesNotExist:
