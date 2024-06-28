@@ -66,6 +66,13 @@ class CeramicCache(models.Model):
         db_index=True,
     )
 
+    issuance_date = models.DateTimeField(
+        null=True, db_index=True
+    )  # stamp['issuanceDate']
+    expiration_date = models.DateTimeField(
+        null=True, db_index=True
+    )  # stamp['expirationDate']
+
     class Meta:
         unique_together = ["type", "address", "provider", "deleted_at"]
 

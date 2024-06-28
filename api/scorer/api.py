@@ -8,6 +8,7 @@
 """
 The scorer API module
 """
+
 from typing import List, Optional
 
 from ceramic_cache.api.v1 import router as ceramic_cache_router_v1
