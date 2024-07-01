@@ -1,7 +1,9 @@
 """Ceramic Cache API"""
 
+import json
 from datetime import timedelta
-from typing import Any, Dict, List, Type, Optional
+from typing import Any, Dict, List, Optional, Type
+
 
 import api_logging as logging
 import tos.api
@@ -11,6 +13,7 @@ from asgiref.sync import async_to_sync
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
+from django.core.cache import cache
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from ninja import Router
@@ -22,6 +25,9 @@ from ninja_jwt.authentication import InvalidToken
 # from ninja_jwt.schema import RefreshToken
 from ninja_jwt.settings import api_settings
 from ninja_jwt.tokens import RefreshToken, Token, TokenError
+
+import tos.api
+import tos.schema
 from registry.api.v1 import (
     DetailedScoreResponse,
     ErrorMessageResponse,
@@ -361,13 +367,36 @@ def handle_delete_stamps(
     )
 
 
+class InvalidScorerConfiguration(APIException):
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    default_detail = "Unable to retrieve configured scorer!"
+
+
 @router.get("weights", response=Dict[str, str])
 def get_scorer_weights(request):
     return handle_get_scorer_weights()
 
 
 def handle_get_scorer_weights() -> Dict[str, str]:
-    return settings.GITCOIN_PASSPORT_WEIGHTS
+    cache_key = f"ceramic_cache_scorer_weights_{settings.CERAMIC_CACHE_SCORER_ID}"
+    weights = cache.get(cache_key)
+    if weights:
+        try:
+            return json.loads(weights)
+        except Exception:
+            log.error("Failed to parse weights from cache!", exc_info=True)
+
+    try:
+        community = Community.objects.get(id=settings.CERAMIC_CACHE_SCORER_ID)
+        weights = community.get_scorer().weights
+        # Cache the value for 1 minute
+        cache.set(cache_key, json.dumps(weights), 1 * 60)
+        return weights
+
+    except Exception:
+        msg = f"Unable to retrieve configured scorer! settings.CERAMIC_CACHE_SCORER_ID={settings.CERAMIC_CACHE_SCORER_ID}"
+        log.error(msg, exc_info=True)
+        raise InvalidScorerConfiguration(msg)
 
 
 @router.get("stamp", response=GetStampResponse)
