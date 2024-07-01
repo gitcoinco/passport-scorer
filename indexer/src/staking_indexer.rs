@@ -47,12 +47,34 @@ impl<'a> StakingIndexer<'a> {
         })
     }
 
+    pub async fn index_events(&self) -> Result<()> {
+        match try_join!(
+            self.listen_with_timeout_reset(),
+            self.run_index_manual_requests_loop(),
+        ) {
+            Ok(_) => {
+                eprintln!(
+                    "Warning - indexer join ended without error for chain {}. This should never happen.",
+                    self.chain_id
+                );
+            }
+            Err(err) => {
+                eprintln!(
+                    "Warning - indexer join ended with error for chain {}, {:?}. This should never happen.",
+                    self.chain_id, err
+                );
+            }
+        }
+        Ok(())
+    }
+
     pub async fn listen_with_timeout_reset(&self) -> Result<()> {
         loop {
             let start_block = self
                 .postgres_client
                 .get_latest_block(self.chain_id, self.start_block)
                 .await?;
+
             println!(
                 "Debug - Starting indexer for chain {} at block {}",
                 self.chain_id, start_block
@@ -136,6 +158,12 @@ impl<'a> StakingIndexer<'a> {
         // Reducing to 1k because of occasional timeout issues
         while last_queried_block < current_block - 1 {
             let query_end_block = min(last_queried_block + 1000, current_block - 1);
+            eprintln!(
+                "Debug - Querying past events for chain {} from block {} to block {}",
+                self.chain_id,
+                last_queried_block + 1,
+                query_end_block
+            );
             let previous_events_query = id_staking_contract
                 .events()
                 .from_block(last_queried_block + 1)
@@ -153,7 +181,9 @@ impl<'a> StakingIndexer<'a> {
                 Err(err) => {
                     return Err(eyre::eyre!(
                         "Error - Failed to query events: {}, {}, {:?}",
-                        last_queried_block, query_end_block, err
+                        last_queried_block,
+                        query_end_block,
+                        err
                     ));
                 }
             }
@@ -164,15 +194,14 @@ impl<'a> StakingIndexer<'a> {
             self.chain_id
         );
 
-        let future_events = id_staking_contract
-            .events()
-            .from_block(max(last_queried_block + 1, current_block));
+        let from_block = max(last_queried_block + 1, current_block);
+        let future_events = id_staking_contract.events().from_block(from_block);
 
         let mut stream = future_events.stream().await?.with_meta();
 
         eprintln!(
-            "Debug - Listening for future events for chain {}",
-            self.chain_id
+            "Debug - Listening for future events for chain {} from block {}",
+            self.chain_id, from_block
         );
 
         while let Some(event_with_meta) = stream.next().await {
@@ -432,4 +461,66 @@ impl<'a> StakingIndexer<'a> {
         }
         Ok(())
     }
+
+    async fn run_index_manual_requests_loop(&self) -> Result<()> {
+        loop {
+            if let Err(err) = self.index_manual_requests().await {
+                eprintln!(
+                    "Error - Failed to index manual requests for chain {}: {:?}",
+                    self.chain_id, err
+                );
+            }
+            tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
+        }
+    }
+
+    async fn index_manual_requests(&self) -> Result<()> {
+        let requests = self
+            .postgres_client
+            .get_pending_manual_index_requests(self.chain_id)
+            .await?;
+
+        for request in requests {
+            if let Err(err) = self.index_tx(request.block_number, &request.tx_hash).await {
+                eprintln!(
+                    "Error - Failed to index tx {} for chain {}: {:?}",
+                    request.tx_hash, self.chain_id, err
+                );
+                self.postgres_client
+                    .update_manual_index_request_status(request.id, "failed")
+                    .await?;
+            } else {
+                eprintln!(
+                    "Debug - Successfully indexed tx {} for chain {}",
+                    request.tx_hash, self.chain_id
+                );
+                self.postgres_client
+                    .update_manual_index_request_status(request.id, "indexed")
+                    .await?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn index_tx(&self, block_number: u64, tx_hash: &String) -> Result<()> {
+        let client = Arc::new(create_rpc_connection(&self.rpc_url).await);
+        let id_staking_contract = IdentityStaking::new(*self.contract_address, client.clone());
+
+        let events = id_staking_contract
+            .events()
+            .from_block(block_number)
+            .to_block(block_number)
+            .query_with_meta()
+            .await?;
+
+        for (event, meta) in events.iter() {
+            let this_tx_hash = format!("{:?}", meta.transaction_hash);
+            if this_tx_hash == *tx_hash {
+                self.process_staking_event(&event, &meta, &client).await?;
+            }
+        }
+
+        Ok(())
+    }
+
 }

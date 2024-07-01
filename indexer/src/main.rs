@@ -27,7 +27,7 @@ async fn main() -> Result<()> {
         let contract_address_op_mainnet = get_env("STAKING_CONTRACT_ADDRESS_OP_MAINNET")
             .parse::<Address>()
             .unwrap();
-      
+
         let contract_address_op_sepolia = get_env("STAKING_CONTRACT_ADDRESS_OP_SEPOLIA")
             .parse::<Address>()
             .unwrap();
@@ -83,7 +83,7 @@ async fn run_ethereum_indexer(
         contract_address,
     )
     .await?;
-    ethereum_staking_indexer.listen_with_timeout_reset().await
+    ethereum_staking_indexer.index_events().await
 }
 
 async fn run_optimism_indexer(
@@ -105,7 +105,7 @@ async fn run_optimism_indexer(
         contract_address,
     )
     .await?;
-    optimism_staking_indexer.listen_with_timeout_reset().await
+    optimism_staking_indexer.index_events().await
 }
 
 async fn run_arbitrum_indexer(
@@ -127,7 +127,7 @@ async fn run_arbitrum_indexer(
         contract_address,
     )
     .await?;
-    arbitrum_staking_indexer.listen_with_timeout_reset().await
+    arbitrum_staking_indexer.index_events().await
 }
 
 
@@ -150,5 +150,5 @@ async fn run_optimism_sepolia_indexer(
         contract_address,
     )
     .await?;
-    op_sepolia_staking_indexer.listen_with_timeout_reset().await
+    op_sepolia_staking_indexer.index_events().await
 }
