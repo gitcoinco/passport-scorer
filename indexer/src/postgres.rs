@@ -18,6 +18,12 @@ pub struct PostgresClient {
     pool: Pool,
 }
 
+pub struct ManualIndexRequest {
+    pub id: i32,
+    pub block_number: u64,
+    pub tx_hash: String,
+}
+
 impl PostgresClient {
     pub async fn new() -> Result<Self, Error> {
         let mut pg_config = tokio_postgres::Config::new();
@@ -56,7 +62,7 @@ impl PostgresClient {
         let client = self.pool.get().await.unwrap();
         client.execute("INSERT INTO registry_gtcstakeevent (event_type, round_id, staker, amount, staked, block_number, tx_hash) VALUES ($1, $2, $3, $4, $5, $6, $7)",&[&"SelfStake", &round_id, &staker, &decimal_amount, &staked, &block_number, &tx_hash]).await?;
         println!(
-            "Row inserted into registry_gtcstakeevent with type SelfStake for block {}!",
+            "Row inserted into registry_gtcstakeevent with type SelfStake for block {} for legacy contract!",
             block_number
         );
         Ok(())
@@ -78,7 +84,7 @@ impl PostgresClient {
         let client = self.pool.get().await.unwrap();
         client.execute("INSERT INTO registry_gtcstakeevent (event_type, round_id, staker, address, amount, staked, block_number, tx_hash) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", &[&"Xstake", &round_id, &staker, &user, &decimal_amount, &staked, &block_number, &tx_hash]).await?;
         println!(
-            "Row inserted into registry_gtcstakeevent with type Xstake for block {}!",
+            "Row inserted into registry_gtcstakeevent with type Xstake for block {} for legacy contract!",
             block_number
         );
         Ok(())
@@ -86,6 +92,36 @@ impl PostgresClient {
 
     fn unix_time_to_datetime(&self, unix_time: &u64) -> DateTime<Utc> {
         DateTime::from_timestamp(*unix_time as i64, 0).unwrap()
+    }
+
+    pub async fn get_pending_manual_index_requests(&self, chain_id: u32) -> Result<Vec<ManualIndexRequest>, Error> {
+        let client = self.pool.get().await.unwrap();
+        let raw_rows = client
+            .query("SELECT id, block_number, tx_hash FROM stake_manualindexrequest WHERE status = 'pending' AND chain_id = $1", &[&(chain_id as i32)])
+            .await?;
+
+        let mut rows = Vec::new();
+
+        for row in raw_rows {
+            let id: i32 = row.get("id");
+            let decimal_block_number: Decimal = row.get("block_number");
+            let block_number: u64 = decimal_block_number.to_u64().unwrap();
+            let tx_hash: String = row.get("tx_hash");
+
+            rows.push(ManualIndexRequest {
+                id,
+                block_number,
+                tx_hash,
+            });
+        }
+
+        Ok(rows)
+    }
+
+    pub async fn update_manual_index_request_status(&self, id: i32, status: &str) -> Result<(), Error> {
+        let client = self.pool.get().await.unwrap();
+        client.execute("UPDATE stake_manualindexrequest SET status = $1 WHERE id = $2", &[&status, &id]).await?;
+        Ok(())
     }
 
     pub async fn add_or_extend_stake(
