@@ -20,23 +20,20 @@ export type ScheduledTaskConfig = Pick<
     command: string;
     scheduleExpression: string;
     ephemeralStorageSizeInGiB?: number;
+    scheduled?: boolean;
   };
 
-export function createScheduledTask({
+export function createTask({
   name,
   config,
   environment,
   secrets,
-  alarmPeriodSeconds,
-  enableInvocationAlerts,
   scorerSecretManagerArn,
 }: {
   name: string;
   config: ScheduledTaskConfig;
   environment: secretsManager.EnvironmentVar[];
   secrets: pulumi.Output<secretsManager.SecretRef[]>;
-  alarmPeriodSeconds?: number;
-  enableInvocationAlerts?: boolean;
   scorerSecretManagerArn: Input<string>;
 }) {
   const {
@@ -48,10 +45,10 @@ export function createScheduledTask({
     cluster,
     securityGroup,
     command,
-    scheduleExpression,
     ephemeralStorageSizeInGiB,
     cpu,
     memory,
+    scheduled,
   } = config;
 
   const commandSuccessMessage = `SUCCESS <${name}>`;
@@ -61,7 +58,9 @@ export function createScheduledTask({
     command + ` && echo "${commandSuccessMessage}"`,
   ];
 
-  const logGroup = new aws.cloudwatch.LogGroup(`scheduled-${name}`, {
+  const logGroupName = `${scheduled ? "scheduled-" : ""}${name}`;
+
+  const logGroup = new aws.cloudwatch.LogGroup(logGroupName, {
     retentionInDays: 90,
   });
 
@@ -93,10 +92,6 @@ export function createScheduledTask({
         secrets,
       },
     },
-  });
-
-  const scheduledEventRule = new aws.cloudwatch.EventRule(`rule-${name}`, {
-    scheduleExpression,
   });
 
   const eventsStsAssumeRole = new aws.iam.Role(`${name}-eventsRole`, {
@@ -153,7 +148,7 @@ export function createScheduledTask({
                   Resource: scorerSecretManagerArnStr,
                 },
               ],
-            })
+            }),
         ),
       },
       {
@@ -168,7 +163,7 @@ export function createScheduledTask({
                 Resource: Resource,
               },
             ],
-          })
+          }),
         ),
       },
       {
@@ -184,7 +179,7 @@ export function createScheduledTask({
                   Resource: [dpoppEcsRoleArn, weeklyDataDumpTaskRoleArn],
                 },
               ],
-            })
+            }),
         ),
       },
     ],
@@ -196,18 +191,64 @@ export function createScheduledTask({
     },
   });
 
+  return {
+    task,
+    logGroup,
+    eventsStsAssumeRole,
+    cluster,
+    securityGroup,
+    subnets,
+    alertTopic,
+    commandSuccessMessage,
+  };
+}
+
+export function createScheduledTask({
+  name,
+  config,
+  environment,
+  secrets,
+  alarmPeriodSeconds,
+  enableInvocationAlerts,
+  scorerSecretManagerArn,
+}: {
+  name: string;
+  config: ScheduledTaskConfig;
+  environment: secretsManager.EnvironmentVar[];
+  secrets: pulumi.Output<secretsManager.SecretRef[]>;
+  alarmPeriodSeconds?: number;
+  enableInvocationAlerts?: boolean;
+  scorerSecretManagerArn: Input<string>;
+}) {
+  const { scheduleExpression } = config;
+
+  const taskResources = createTask({
+    name,
+    config: {
+      ...config,
+      scheduled: true,
+    },
+    environment,
+    secrets,
+    scorerSecretManagerArn,
+  });
+
+  const scheduledEventRule = new aws.cloudwatch.EventRule(`rule-${name}`, {
+    scheduleExpression,
+  });
+
   new aws.cloudwatch.EventTarget(`scheduled-${name}`, {
     rule: scheduledEventRule.name,
-    arn: cluster.arn,
-    roleArn: eventsStsAssumeRole.arn,
+    arn: taskResources.cluster.arn,
+    roleArn: taskResources.eventsStsAssumeRole.arn,
     ecsTarget: {
       taskCount: 1,
-      taskDefinitionArn: task.taskDefinition.arn,
+      taskDefinitionArn: taskResources.task.taskDefinition.arn,
       launchType: "FARGATE",
       networkConfiguration: {
         assignPublicIp: false,
-        securityGroups: [securityGroup.id],
-        subnets,
+        securityGroups: [taskResources.securityGroup.id],
+        subnets: taskResources.subnets,
       },
     },
   });
@@ -218,8 +259,8 @@ export function createScheduledTask({
       const missingInvocationsAlarm = new aws.cloudwatch.MetricAlarm(
         "MissingInvocations-" + name,
         {
-          alarmActions: [alertTopic.arn],
-          okActions: [alertTopic.arn],
+          alarmActions: [taskResources.alertTopic.arn],
+          okActions: [taskResources.alertTopic.arn],
           comparisonOperator: "LessThanThreshold",
           datapointsToAlarm: 1,
           evaluationPeriods: 1,
@@ -233,15 +274,15 @@ export function createScheduledTask({
           statistic: "Sum",
           threshold: 1,
           treatMissingData: "notBreaching",
-        }
+        },
       );
     }
     // Verify failed invocations
     const failedInvocationsAlarm = new aws.cloudwatch.MetricAlarm(
       `FailedInvocations-${name}`,
       {
-        alarmActions: [alertTopic.arn],
-        okActions: [alertTopic.arn],
+        alarmActions: [taskResources.alertTopic.arn],
+        okActions: [taskResources.alertTopic.arn],
         comparisonOperator: "GreaterThanThreshold",
         datapointsToAlarm: 1,
         evaluationPeriods: 1,
@@ -255,7 +296,7 @@ export function createScheduledTask({
         statistic: "Sum",
         threshold: 0,
         treatMissingData: "notBreaching",
-      }
+      },
     );
 
     // Missing succes Message
@@ -263,7 +304,7 @@ export function createScheduledTask({
     const successfulRunMetricName = `SuccessfulRun-${name}`;
 
     new aws.cloudwatch.LogMetricFilter(successfulRunMetricName, {
-      logGroupName: logGroup.name,
+      logGroupName: taskResources.logGroup.name,
       metricTransformation: {
         defaultValue: "0",
         name: successfulRunMetricName,
@@ -272,12 +313,12 @@ export function createScheduledTask({
         value: "1",
       },
       name: successfulRunMetricName,
-      pattern: `"${commandSuccessMessage}"`,
+      pattern: `"${taskResources.commandSuccessMessage}"`,
     });
 
     new aws.cloudwatch.MetricAlarm(`UnsuccessfulRuns-${name}`, {
-      alarmActions: [alertTopic.arn],
-      okActions: [alertTopic.arn],
+      alarmActions: [taskResources.alertTopic.arn],
+      okActions: [taskResources.alertTopic.arn],
       comparisonOperator: "GreaterThanThreshold",
       datapointsToAlarm: 1,
       evaluationPeriods: 1,
@@ -322,7 +363,7 @@ export function createScheduledTask({
     const cronJobErrorFilter = new aws.cloudwatch.LogMetricFilter(
       cronJobErrorMetricName,
       {
-        logGroupName: logGroup.name,
+        logGroupName: taskResources.logGroup.name,
         metricTransformation: {
           defaultValue: "0",
           name: cronJobErrorMetricName,
@@ -332,14 +373,14 @@ export function createScheduledTask({
         },
         name: cronJobErrorMetricName,
         pattern: '"CRONJOB ERROR:"',
-      }
+      },
     );
 
     const cronJobErrorAlarm = new aws.cloudwatch.MetricAlarm(
       `CronJobErrorMsgAlarm-${name}`,
       {
-        alarmActions: [alertTopic.arn],
-        okActions: [alertTopic.arn],
+        alarmActions: [taskResources.alertTopic.arn],
+        okActions: [taskResources.alertTopic.arn],
         comparisonOperator: "GreaterThanOrEqualToThreshold",
         datapointsToAlarm: 1,
         evaluationPeriods: 1,
@@ -351,9 +392,9 @@ export function createScheduledTask({
         statistic: "Sum",
         threshold: 1,
         treatMissingData: "notBreaching",
-      }
+      },
     );
   }
 
-  return task.taskDefinition.id;
+  return taskResources.task.taskDefinition.id;
 }

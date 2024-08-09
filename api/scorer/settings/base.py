@@ -463,5 +463,6 @@ BULK_SCORE_REQUESTS_ADDRESS_LIST_FOLDER = env(
 BULK_MODEL_SCORE_REQUESTS_RESULTS_FOLDER = env(
     "BULK_MODEL_SCORE_REQUESTS_RESULTS_FOLDER", default="model-score-results"
 )
+DATA_SCIENCE_API_KEY = env("DATA_SCIENCE_API_KEY", default="abc")
 
 VERIFIER_URL = env("VERIFIER_URL", default="http://localhost:8001/verifier/verify")

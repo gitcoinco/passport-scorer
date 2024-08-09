@@ -1,8 +1,10 @@
-from account.models import Community, EthAddressField
+from enum import Enum
+
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
-from enum import Enum
+
+from account.models import Community, EthAddressField
 
 
 class Passport(models.Model):
@@ -200,6 +202,7 @@ class GTCStakeEvent(models.Model):
 class BatchRequestStatus(str, Enum):
     PENDING = "PENDING"
     DONE = "DONE"
+    ERROR = "ERROR"
 
     def __str__(self):
         return f"{self.value}"
@@ -214,3 +217,4 @@ class BatchModelScoringRequest(models.Model):
         choices=[(status.value, status) for status in BatchRequestStatus],
         default=BatchRequestStatus.PENDING,
     )
+    progress = models.IntegerField(default=0, help_text="Progress in percentage: 0-100")

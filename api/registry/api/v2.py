@@ -1,12 +1,15 @@
 from datetime import datetime
 from typing import List, Optional
 
+from django.db.models import Q
+from ninja import Router, Schema
+from ninja.security import APIKeyHeader
+
 import api_logging as logging
 
 # --- Deduplication Modules
 from account.models import Community
-from django.db.models import Q
-from ninja import Router
+from registry.admin import get_s3_client
 from registry.api import common, v1
 from registry.api.schema import (
     CursorPaginatedHistoricalScoreResponse,
@@ -29,19 +32,22 @@ from registry.exceptions import (
     InvalidLimitException,
     api_get_object_or_404,
 )
-from registry.models import Score
+from registry.models import BatchModelScoringRequest, BatchRequestStatus, Score
 from registry.utils import (
     decode_cursor,
     encode_cursor,
     get_cursor_query_condition,
     reverse_lazy_with_query,
 )
+from scorer import settings
+from scorer.settings import (
+    BULK_MODEL_SCORE_REQUESTS_RESULTS_FOLDER,
+    BULK_SCORE_REQUESTS_BUCKET_NAME,
+)
 
 log = logging.getLogger(__name__)
 
 router = Router()
-
-analytics_router = Router()
 
 
 @router.get(
@@ -320,3 +326,61 @@ This endpoint will return a `DetailedScoreResponse`. This endpoint will also ret
 )
 def get_score(request, address: str, scorer_id: int) -> DetailedScoreResponse:
     return v1.get_score(request, address, scorer_id)
+
+
+internal_router = Router()
+
+
+class DataScienceApiKey(APIKeyHeader):
+    param_name = "AUTHORIZATION"
+
+    def authenticate(self, request, key):
+        if key == settings.DATA_SCIENCE_API_KEY:
+            return key
+        return None
+
+
+data_science_auth = DataScienceApiKey()
+
+
+class BatchResponse(Schema):
+    created_at: str
+    s3_url: Optional[str]
+    status: BatchRequestStatus
+    percentage_complete: int
+
+
+@internal_router.get(
+    "/analysis/internal",
+    auth=data_science_auth,
+    response={
+        200: list[BatchResponse],
+        400: ErrorMessageResponse,
+        500: ErrorMessageResponse,
+    },
+    summary="Retrieve batch scoring status and result",
+    description="Retrieve batch scoring status and result",
+)
+def get_batch_analysis_stats(request, limit: int = 10) -> list[BatchResponse]:
+    requests = BatchModelScoringRequest.objects.order_by("-created_at")[:limit]
+    return [
+        BatchResponse(
+            created_at=req.created_at.isoformat(),
+            s3_url=(
+                get_s3_client().generate_presigned_url(
+                    "get_object",
+                    Params={
+                        "Bucket": BULK_SCORE_REQUESTS_BUCKET_NAME,
+                        "Key": f"{BULK_MODEL_SCORE_REQUESTS_RESULTS_FOLDER}/{req.s3_filename}",
+                    },
+                    # 24 hrs
+                    ExpiresIn=60 * 60 * 24,
+                )
+                if req.status == BatchRequestStatus.DONE
+                else None
+            ),
+            status=req.status,
+            percentage_complete=req.progress,
+        )
+        for req in requests
+    ]

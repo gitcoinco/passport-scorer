@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 import boto3
 from asgiref.sync import async_to_sync
 from django import forms
+from django.conf import settings
 from django.contrib import admin, messages
 from django.shortcuts import redirect, render
 from django.urls import path
@@ -34,7 +35,11 @@ _s3_client = None
 def get_s3_client():
     global _s3_client
     if not _s3_client:
-        _s3_client = boto3.client("s3")
+        _s3_client = boto3.client(
+            "s3",
+            aws_access_key_id=settings.S3_DATA_AWS_SECRET_KEY_ID,
+            aws_secret_access_key=settings.S3_DATA_AWS_SECRET_ACCESS_KEY,
+        )
     return _s3_client
 
 

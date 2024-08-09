@@ -21,6 +21,7 @@ from ceramic_cache.api.v1 import router as ceramic_cache_router_v1
 from passport_admin.api import router as passport_admin_router
 from registry.api.v1 import feature_flag_router
 from registry.api.v1 import router as registry_router_v1
+from registry.api.v2 import internal_router
 from registry.api.v2 import router as registry_router_v2
 
 
@@ -120,6 +121,9 @@ ceramic_cache_api_v1.add_router("", ceramic_cache_router_v1)
 
 passport_admin_api = NinjaAPI(urls_namespace="passport-admin", docs_url=None)
 passport_admin_api.add_router("", passport_admin_router)
+
+internal_api = NinjaAPI(urls_namespace="internal", docs_url=None)
+internal_api.add_router("", internal_router)
 
 
 apis = [
